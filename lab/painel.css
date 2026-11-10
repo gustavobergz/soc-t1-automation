@@ -262,6 +262,9 @@ dialog pre { padding: 10px; background: #081323; border: 1px solid var(--border)
 .scope-panel .metric-summary { margin-bottom: 9px; }
 .audit-scroll { max-height: 330px; }
 .audit-scroll th { position: sticky; top: 0; }
+.audit-scroll table { white-space: normal; }
+.audit-scroll td:first-child { white-space: nowrap; }
+.audit-scroll td:nth-child(3) { overflow-wrap: anywhere; }
 
 @media (max-width: 1200px) {
   :root { --sidebar-width: 190px; }

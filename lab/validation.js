@@ -40,7 +40,8 @@ globalThis.SocValidation = (() => {
       detail.textContent = actions[event.event];
       detail.addEventListener('click', () => SocLogs.showDetails(event));
       row.insertCell().append(detail);
-      row.insertCell().textContent = event.actor || event.approved_by || event.provider || event.vm;
+      const provider = event.provider?.startsWith('fixture local') ? 'fixture' : event.provider;
+      row.insertCell().textContent = event.actor || event.approved_by || provider || event.vm;
       row.insertCell().textContent = event.evidence_ids?.length ?? event.result?.evidence_ids?.length ?? '—';
     }
   }
