@@ -29,6 +29,7 @@ const assets = new Map([
   ['/lab/validation.js', ['lab/validation.js', 'text/javascript; charset=utf-8']],
   ['/lab/review.js', ['lab/review.js', 'text/javascript; charset=utf-8']],
   ['/lab/analysis.js', ['lab/analysis.js', 'text/javascript; charset=utf-8']],
+  ['/lab/arena.js', ['lab/arena.js', 'text/javascript; charset=utf-8']],
   ['/lab/investigation.js', ['lab/investigation.js', 'text/javascript; charset=utf-8']],
   ['/lab/log-worker.js', ['lab/log-worker.js', 'text/javascript; charset=utf-8']],
   ['/logs/soc-demo.jsonl', ['logs/soc-demo.jsonl', 'application/x-ndjson; charset=utf-8']],

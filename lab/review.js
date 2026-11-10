@@ -7,7 +7,8 @@ globalThis.SocReview = (() => {
   const dispositions = { confirmado: 'Confirmado', falso_positivo: 'Falso positivo', inconclusivo: 'Inconclusivo' };
   const kinds = new Map([
     ['ssh.failed', 'failure'], ['ssh.accepted', 'login'], ['sudo.attempt', 'privilege'], ['sudo.list', 'privilege'],
-    ['change.approved', 'change'], ['audit.command', 'activity'], ['process.exec', 'activity'], ['network.connection', 'activity'],
+    ['sudo.denied', 'admin_denied'], ['change.approved', 'change'], ['audit.command', 'activity'],
+    ['process.exec', 'activity'], ['process.started', 'activity'], ['network.connection', 'activity'],
   ]);
 
   function timeline(entries) {
@@ -29,19 +30,20 @@ globalThis.SocReview = (() => {
       if (!kind || (id && ids.has(id))) continue;
       if (id) ids.add(id);
       const timestamp = typeof event.event_time === 'string' ? event.event_time : event.timestamp;
-      events.push({ kind, time: typeof timestamp === 'string' ? Date.parse(timestamp) : NaN, ip: event.source_ip, host: event.host, user: event.username || event.user });
+      events.push({ kind, time: typeof timestamp === 'string' ? Date.parse(timestamp) : NaN, ip: event.source_ip, host: event.host, user: event.username || event.user, record: event });
     }
     events.sort((a, b) => (a.time || 0) - (b.time || 0));
     const sequence = events.map((event) => event.kind).filter((kind, index, order) => kind !== order[index - 1]).slice(0, 48);
     const failures = events.filter((event) => event.kind === 'failure').length;
     const login = events.find((event) => event.kind === 'login');
     const privilege = events.find((event) => event.kind === 'privilege' && (!login || event.time >= login.time));
+    const assets = [...new Set(events.map((event) => event.host).filter((host) => typeof host === 'string' && host))].sort();
     const entity = audit || events.find((event) => event.kind !== 'change');
     const mitre = entries.findLast((event) => event.event === 'soar.enriched')?.mitre;
     const text = (value) => typeof value === 'string' ? value : '';
     return {
       source: text(entity?.source_ip || entity?.ip), host: text(entity?.host), user: text(entity?.username || entity?.user),
-      sequence, failures, evidenceIds: [...ids], login: Boolean(login), privilege: Boolean(privilege),
+      sequence, failures, evidenceIds: [...ids], login: Boolean(login), privilege: Boolean(privilege), events, assets,
       otherActivity: Boolean(privilege && events.some((event) => event.kind === 'activity' && event.time > privilege.time && event.host === privilege.host)),
       authorizedChange: events.some((event) => event.kind === 'change'),
       mixed: new Set(events.filter((event) => event.kind !== 'change').map((event) => JSON.stringify([event.ip, event.host, event.user]))).size > 1,
@@ -97,13 +99,73 @@ globalThis.SocReview = (() => {
     return previous[right.length];
   }
 
+  const stepLabels = {
+    failure: 'Falha de autenticação', login: 'Autenticação aceita', privilege: 'Consulta de privilégios',
+    admin_denied: 'Operação administrativa negada', change: 'Mudança autorizada registrada', activity: 'Atividade do endpoint',
+  };
+
+  function story(context) {
+    const steps = [];
+    for (const event of context.events.filter((entry) => Number.isFinite(entry.time))) {
+      const previous = steps.at(-1);
+      if (event.kind === 'failure' && previous?.kind === 'failure' && previous.ip === event.ip &&
+          previous.host === event.host && previous.user === event.user) {
+        previous.end = event.time;
+        previous.records.push(event.record);
+      } else steps.push({ ...event, end: event.time, records: [event.record] });
+    }
+    return steps.map((step) => ({
+      ...step,
+      label: step.records.length === 1 ? stepLabels[step.kind] : `${step.records.length} falhas de autenticação`,
+    }));
+  }
+
+  function signature(context) {
+    const assets = context.assets || (context.host ? [context.host] : []);
+    return JSON.stringify([context.sequence, [...new Set(context.mitre)].sort(), [...new Set(assets)].sort()]);
+  }
+
+  function receipt(entries, id, source) {
+    const triage = entries.findLast((event) => ['soar.triaged', 'soar.manual_triaged'].includes(event.event));
+    if (!triage) return null;
+    const audit = entries.findLast((event) => ['siem.correlated', 'siem.manual_detected'].includes(event.event));
+    const result = triage.result || {};
+    const evidence = [result.evidence_ids, triage.input?.evidence_ids, triage.evidence_ids, audit?.evidence_ids].find(Array.isArray) || [];
+    const decision = entries.findLast((event) => ['soar.approval_granted', 'soar.approval_rejected', 'soar.policy_denied', 'soar.monitor_only'].includes(event.event));
+    return {
+      event: 'panel.decision_receipt', version: 1, run: id, source,
+      timestamp: triage.timestamp, incident: triage.incident || audit?.incident || null,
+      rule_id: audit?.rule_id || null, correlation_event: audit?.event || null,
+      provider: triage.provider || 'analista', model: triage.model || null, model_version: triage.model_version || null,
+      prompt_version: triage.prompt_version || null, prompt: triage.prompt || null, validation: triage.validation || null,
+      severity: triage.severity || null, reason: result.severity_reason || triage.justification || triage.message || '',
+      triage_actor: triage.actor || null,
+      uncertainty: result.uncertainty || null,
+      recommendations: Array.isArray(result.recommendations) ? result.recommendations.filter((item) => typeof item === 'string') : [],
+      evidence_ids: [...new Set(evidence.filter((item) => typeof item === 'string'))],
+      human_or_policy_decision: decision ? { event: decision.event, action: decision.action || null, actor: decision.actor || null, timestamp: decision.timestamp, reason: decision.message || null } : null,
+    };
+  }
+
+  function pulse(items) {
+    const severityWeight = { alta: 18, media: 9, baixa: 4 };
+    const active = items.filter((item) => !item.closed);
+    const assets = new Set(active.flatMap((item) => item.assets).filter(Boolean));
+    const severity = active.reduce((total, item) => total + (Object.hasOwn(severityWeight, item.severity) ? severityWeight[item.severity] : 2), 0);
+    const pending = active.filter((item) => item.pending).length;
+    const points = { severity, assets: assets.size * 4, approval: pending * 8 };
+    return { score: Math.min(100, points.severity + points.assets + points.approval), active: active.length, assets: assets.size, pending, points };
+  }
+
   function related(context, candidates, current) {
     if (!context.sequence.length) return [];
     return candidates.filter((item) => item.id !== current && Object.hasOwn(dispositions, item.resolution) && Array.isArray(item.context?.sequence))
       .map((item) => {
         const other = item.context;
         const order = 2 * commonSequence(context.sequence, other.sequence) / (context.sequence.length + other.sequence.length);
-        const sameHost = Boolean(context.host && context.host === other.host);
+        const assets = context.assets?.length ? context.assets : [context.host];
+        const otherAssets = other.assets?.length ? other.assets : [other.host];
+        const sameHost = assets.some((host) => host && otherAssets.includes(host));
         const sameUser = Boolean(context.user && context.user === other.user);
         const sameTechnique = context.mitre.some((technique) => other.mitre?.includes(technique));
         const score = 0.75 * order + 0.10 * sameHost + 0.08 * sameUser + 0.07 * sameTechnique;
@@ -112,12 +174,12 @@ globalThis.SocReview = (() => {
         if (!sameHost) differences.push('host diferente ou ausente');
         if (!sameUser) differences.push('conta diferente ou ausente');
         if (order < 1) differences.push('sequência parcialmente diferente');
-        return { ...item, score, differences };
+        return { ...item, score, differences, exact: signature(context) === signature(other) };
       }).filter((item) => item.score >= 0.55)
       .sort((a, b) => b.score - a.score).slice(0, 3);
   }
 
-  return { timeline, facts, gaps, challenge, shadow, related, dispositions };
+  return { timeline, facts, gaps, challenge, shadow, story, signature, receipt, pulse, related, dispositions };
 })();
 
 if (typeof module === 'object') module.exports = globalThis.SocReview;

@@ -7,6 +7,7 @@ globalThis.SocDashboard = (() => {
   const labels = { alta: 'Alta', media: 'Média', baixa: 'Baixa' };
   const sample = new Map();
   const live = new Map();
+  let previousPulse;
 
   function badge(severity) {
     const node = document.createElement('span');
@@ -103,6 +104,7 @@ globalThis.SocDashboard = (() => {
       case 'soar.triaged':
       case 'soar.manual_triaged': record.severity = event.severity; break;
       case 'soar.approval_requested': record.state = 'Aguardando aprovação'; break;
+      case 'soar.approval_granted': record.state = 'Contenção autorizada'; break;
       case 'endpoint.block_applied': record.state = 'Contido'; break;
       case 'endpoint.block_released': record.state = 'Origem liberada'; break;
       case 'soar.monitor_only': record.state = 'Em acompanhamento'; break;
@@ -140,7 +142,32 @@ globalThis.SocDashboard = (() => {
   }
 
   function ingest(event) {
-    if (applyAudit(live, event)) renderIncidents();
+    if (applyAudit(live, event)) {
+      renderIncidents();
+      renderPulse();
+    }
+  }
+
+  function renderPulse() {
+    const active = [...live.values()].map((item) => ({
+      severity: item.severity, assets: [item.host],
+      closed: globalThis.SocAnalysis?.isReviewed(item.run), pending: item.state === 'Aguardando aprovação',
+    }));
+    const pulse = SocReview.pulse([...active, ...SocLogs.pulseCases()]);
+    el('pulse-score').textContent = String(pulse.score);
+    el('pulse-meter').value = pulse.score;
+    el('pulse-status').textContent = pulse.active ? `${pulse.active} em aberto · ${pulse.assets} ativos · ${pulse.pending} aguardando aprovação` : 'Nenhum incidente aberto nas fontes acompanhadas.';
+    const delta = previousPulse ? pulse.score - previousPulse.score : 0;
+    if (previousPulse) {
+      const factors = { severity: 'incidentes e severidade', assets: 'ativos afetados', approval: 'aprovações pendentes' };
+      const changed = Object.keys(factors).filter((key) => pulse.points[key] !== previousPulse.points[key]);
+      if (changed.length) {
+        const change = delta ? `${delta > 0 ? '+' : ''}${delta} pontos` : 'Pontuação estável';
+        el('pulse-change').textContent = `${change} · ${changed.map((key) => factors[key]).join(', ')}`;
+      }
+    }
+    previousPulse = pulse;
+    el('pulse-points').textContent = `Severidade +${pulse.points.severity} · ativos +${pulse.points.assets} · aprovações +${pulse.points.approval}.`;
   }
 
   function machine(role, label, count, online, blocked) {
@@ -170,5 +197,6 @@ globalThis.SocDashboard = (() => {
     renderIncidents();
   });
 
-  return { archive, archiveState, machine, ingest, sampleRecords };
+  document.addEventListener('soc:case-changed', renderPulse);
+  return { archive, archiveState, machine, ingest, sampleRecords, renderPulse };
 })();

@@ -65,6 +65,12 @@ O **False Positive Challenger** procura contraprovas com regras locais. Na opç�
 
 O **SOC Memory** compara a ordem dos eventos, o host, a conta e as técnicas. Encerrar uma investigação com uma conclusão revisada ou salvar a conclusão de uma rodada alimenta a memória neste navegador. Os exemplos fictícios aparecem identificados enquanto não houver resoluções revisadas semelhantes. A memória sugere o que conferir e não altera a classificação ou a aprovação.
 
+O **Attack Story** agrupa falhas consecutivas da mesma origem, conta e host. Cada etapa abre os registros que a sustentam. O **Incident DNA** assina a sequência, as técnicas e os ativos e compara assinaturas na memória, inclusive quando o IP muda. O **Decision Receipt** exporta em JSON a regra, a justificativa, os IDs, o modelo, o prompt e a decisão humana ou da política, quando registrados.
+
+Em **Pergunte aos registros**, tente “Quais IPs tiveram mais tentativas de login em 2026-11-09?” ou “Por que este incidente recebeu severidade alta?”. A primeira consulta usa a base carregada e a segunda usa a triagem da rodada selecionada. O painel responde com consultas estruturadas locais. O **Behavioral Fingerprint** usa logins aceitos anteriores da mesma conta, exige pelo menos 12 e marca como raro um horário com menos de 5% das ocorrências. Para experimentar o perfil, abra **SOC Arena**, escolha **Login fora da janela**, envie o cenário ao replay e clique em **Comparar com a base**.
+
+O **SOC Pulse** soma 18, 9 ou 4 pontos por incidente aberto de nível alto, médio ou baixo, e 2 para itens sem nível. Cada ativo distinto soma 4 pontos e cada aprovação pendente soma 8. A pontuação é limitada a 100. O escopo é a sessão ao vivo e os casos locais em investigação. Encerrar um caso ou registrar a conclusão de uma rodada finalizada retira seu peso. O histórico de exemplo e os exercícios da **SOC Arena** ficam fora da pontuação.
+
 ## Métricas e exportação
 
 Cada linha do JSONL é um objeto. Agrupe por `run` e filtre por `event` ou `vm`. O painel exibe os eventos pela ordem de recebimento e preserva o horário UTC da VM. Em `panel.metrics`, os valores são inteiros em milissegundos ou `null` quando a etapa não ocorreu. A tabela usa o relógio monotônico do painel para manter a mesma referência entre VMs.

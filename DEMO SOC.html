@@ -6,13 +6,14 @@
   <meta name="color-scheme" content="dark">
   <title>SOC Tier 1 | Laboratório de resposta</title>
   <link rel="icon" href="lab/assets/soc-shield.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="lab/painel.css">
-  <script defer src="lab/dashboard.js"></script>
-  <script defer src="lab/log-worker.js"></script>
-  <script defer src="lab/investigation.js"></script>
+  <link rel="stylesheet" href="lab/painel.css?v=incident-workspace">
+  <script defer src="lab/dashboard.js?v=incident-workspace"></script>
+  <script defer src="lab/log-worker.js?v=incident-workspace"></script>
+  <script defer src="lab/investigation.js?v=incident-workspace"></script>
   <script defer src="lab/validation.js"></script>
-  <script defer src="lab/review.js"></script>
-  <script defer src="lab/analysis.js"></script>
+  <script defer src="lab/review.js?v=incident-workspace"></script>
+  <script defer src="lab/analysis.js?v=incident-workspace"></script>
+  <script defer src="lab/arena.js?v=incident-workspace"></script>
   <script defer src="lab/painel.js"></script>
 </head>
 <body>
@@ -51,6 +52,7 @@
         <a href="#investigar" id="link-investigation"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Investigar logs</a>
         <a href="#casos" id="link-cases"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>Casos e evidências</a>
         <a href="#analise" id="link-analysis"><svg class="icon" aria-hidden="true"><use href="#i-workflow"/></svg>Análise de incidentes</a>
+        <a href="#arena" id="link-arena"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg>SOC Arena</a>
         <a href="#validacao" id="link-validation"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Método e auditoria</a>
       </nav>
       <div class="lab-status">
@@ -71,6 +73,11 @@
         <article class="kpi kpi-green"><span class="kpi-icon"><svg class="icon" aria-hidden="true"><use href="#i-network"/></svg></span><div><span>Máquinas online</span><strong id="kpi-vms"><b id="kpi-vm-count">0</b><span> / 4</span></strong><a href="#operacao">Abrir operação <span aria-hidden="true">↗</span></a></div></article>
       </div>
       <div class="overview-grid">
+        <section class="panel pulse-panel" aria-labelledby="pulse-title">
+          <div><p class="eyebrow">SOC PULSE</p><h2 id="pulse-title">Risco atual do laboratório</h2><p id="pulse-status" class="analysis-lead">Aguardando dados da sessão.</p></div>
+          <div><strong id="pulse-score">0</strong><span> / 100</span><meter id="pulse-meter" min="0" max="100" low="25" high="65" optimum="0" value="0" aria-label="Risco do laboratório de 0 a 100"></meter></div>
+          <div><p id="pulse-change" class="analysis-lead" role="status">Sem variação nesta sessão.</p><p id="pulse-points" class="dataset-state"></p><small>Casos locais e incidentes ao vivo. Histórico e Arena ficam fora do cálculo.</small></div>
+        </section>
         <section class="panel topology" aria-labelledby="topology-title">
           <div class="overview-panel-header"><h2 id="topology-title"><svg class="icon" aria-hidden="true"><use href="#i-network"/></svg> Topologia do laboratório</h2><span class="pill">REDE ISOLADA</span></div>
           <div class="topology-canvas">
@@ -277,6 +284,56 @@
           <ol id="memory-matches" class="analysis-list memory-matches"></ol>
           <form id="memory-review" class="memory-review" hidden><label>Conclusão revisada<select id="memory-resolution" required><option value="">Selecione</option><option value="confirmado">Incidente confirmado</option><option value="falso_positivo">Falso positivo</option><option value="inconclusivo">Inconclusivo</option></select></label><button type="submit" class="compact primary">Salvar na memória</button></form>
           <p id="memory-status" class="dataset-state" role="status">As classificações revisadas são armazenadas neste navegador.</p>
+        </section>
+        <section class="panel analysis-card" aria-labelledby="story-title">
+          <div class="panel-header"><div><p class="eyebrow">ATTACK STORY</p><h2 id="story-title">O que aconteceu</h2></div><span class="pill">UTC</span></div>
+          <ol id="story-items" class="analysis-list evidence-list"><li>Aguardando registros de autenticação ou atividade.</li></ol>
+        </section>
+        <section class="panel analysis-card" aria-labelledby="dna-title">
+          <div class="panel-header"><div><p class="eyebrow">INCIDENT DNA</p><h2 id="dna-title">Assinatura do incidente</h2></div></div>
+          <p class="analysis-lead">A assinatura compara sequência, técnicas e ativos. O IP pode mudar.</p>
+          <code id="incident-dna">Aguardando evidências.</code>
+          <p id="dna-status" class="dataset-state"></p>
+        </section>
+        <section class="panel analysis-card" aria-labelledby="fingerprint-title">
+          <div class="panel-header"><div><p class="eyebrow">BEHAVIORAL FINGERPRINT</p><h2 id="fingerprint-title">Padrão de acesso</h2></div><button id="fingerprint-test" class="compact" type="button" disabled>Comparar com a base</button></div>
+          <p id="fingerprint-status" class="analysis-lead" role="status">Compare o horário e o host com logins aceitos anteriores da mesma conta.</p>
+          <ul id="fingerprint-items" class="analysis-list"></ul>
+        </section>
+        <section class="panel analysis-card" aria-labelledby="receipt-title">
+          <div class="panel-header"><div><p class="eyebrow">DECISION RECEIPT</p><h2 id="receipt-title">Comprovante da triagem</h2></div></div>
+          <p id="receipt-status" class="analysis-lead">Aguardando uma triagem registrada.</p>
+          <ul id="receipt-actions" class="analysis-list"></ul>
+          <ul id="receipt-evidence" class="analysis-list evidence-list"></ul>
+          <div id="receipt-controls" class="replay-controls" hidden><button id="receipt-json" class="compact" type="button">Ver comprovante</button><button id="receipt-download" class="compact" type="button">Baixar JSON</button></div>
+        </section>
+        <section class="panel analysis-card memory-panel" aria-labelledby="ask-title">
+          <div class="panel-header"><div><p class="eyebrow">ASK YOUR SOC</p><h2 id="ask-title">Pergunte aos registros</h2></div><span class="pill">CONSULTAS LOCAIS</span></div>
+          <p class="analysis-lead">Consulte falhas de SSH por IP ou a justificativa de severidade da rodada selecionada. Datas em UTC.</p>
+          <div class="replay-controls"><button class="compact" type="button" data-ask="Quais IPs tiveram mais tentativas no último dia da base?">IPs com mais falhas</button><button class="compact" type="button" data-ask="Por que este incidente recebeu esta severidade?">Explicar severidade</button></div>
+          <ol id="ask-history" class="ask-history" aria-live="polite"></ol>
+          <form id="ask-form" class="memory-review"><label>Pergunta<input id="ask-question" maxlength="180" required placeholder="Quais IPs mais falharam em 2026-11-09?"></label><button id="ask-submit" class="compact primary" type="submit">Perguntar</button></form>
+        </section>
+      </div>
+    </section>
+    <section id="arena-view" aria-labelledby="arena-title" hidden>
+      <div class="view-heading"><div><p class="eyebrow">TREINAMENTO</p><h1 id="arena-title">SOC Arena</h1><p>Investigue evidências fictícias e justifique a sua classificação.</p></div><span class="environment-badge">CENÁRIOS SINTÉTICOS</span></div>
+      <div class="analysis-grid">
+        <section class="panel analysis-card">
+          <label>Cenário<select id="arena-scenario"></select></label>
+          <p id="arena-brief" class="analysis-lead"></p>
+          <ol id="arena-evidence" class="analysis-list evidence-list"></ol>
+          <button id="arena-replay" class="compact" type="button">Abrir no Attack Replay</button>
+        </section>
+        <section class="panel analysis-card">
+          <h2>Sua análise</h2>
+          <form id="arena-form" class="arena-form">
+            <label>Classificação<select id="arena-answer" required><option value="">Selecione</option><option value="confirmado">Incidente confirmado</option><option value="falso_positivo">Falso positivo</option><option value="inconclusivo">Inconclusivo</option></select></label>
+            <label>Evidência decisiva<select id="arena-reason" required><option value="">Selecione</option></select></label>
+            <button class="compact primary" type="submit">Conferir análise</button>
+          </form>
+          <p id="arena-feedback" class="analysis-lead" role="status"></p>
+          <p id="arena-progress" class="dataset-state"></p>
         </section>
       </div>
     </section>

@@ -20,6 +20,10 @@ globalThis.SocAnalysis = (() => {
   let ordered = [];
   let preview;
   let review;
+  let decision;
+  let fingerprintRequest = 0;
+  const utc = (time) => new Date(time).toISOString().slice(11, 19);
+  const recommendationLabels = { investigar_conta: 'Investigar a conta', monitorar: 'Monitorar', avaliar_contencao: 'Avaliar contenção' };
 
   try {
     for (const item of JSON.parse(localStorage.getItem(memoryKey) || '[]')) {
@@ -37,7 +41,7 @@ globalThis.SocAnalysis = (() => {
   }
 
   function runLabel(run) {
-    const prefix = { sample: 'amostra', session: 'sessão', import: 'importada', case: 'caso local' };
+    const prefix = { sample: 'amostra', session: 'sessão', import: 'importada', case: 'caso local', training: 'treinamento fictício' };
     return `${run.title || run.id} · ${prefix[run.source]}`;
   }
 
@@ -99,6 +103,9 @@ globalThis.SocAnalysis = (() => {
       return item;
     });
     el('memory-matches').replaceChildren(...items);
+    el('dna-status').textContent = matches.length
+      ? `${matches.filter((match) => match.exact).length} assinatura(s) idêntica(s) entre ${matches.length} casos semelhantes exibidos.`
+      : 'Nenhuma assinatura semelhante no histórico disponível.';
     el('memory-review').hidden = !completed(run.events) || !context.sequence.length || !['session', 'sample'].includes(run.source);
     if (el('memory-resolution').dataset.run !== run.id) {
       el('memory-resolution').dataset.run = run.id;
@@ -123,6 +130,81 @@ globalThis.SocAnalysis = (() => {
     ] : [preview.reason, 'A simulação não alterou o serviço.']);
   }
 
+  function link(label, action) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'link-button';
+    button.textContent = label;
+    button.addEventListener('click', action);
+    return button;
+  }
+
+  function renderStory(context) {
+    const steps = SocReview.story(context);
+    if (!steps.length) {
+      fillList('story-items', ['Nenhum evento de autenticação ou atividade disponível.']);
+      return;
+    }
+    const items = steps.map((step) => {
+      const item = document.createElement('li');
+      const time = step.time === step.end ? utc(step.time) : `${utc(step.time)}–${utc(step.end)}`;
+      const entity = [step.user, step.host].filter((part) => typeof part === 'string' && part).join(' · ');
+      const detail = step.records.length === 1 ? step.records[0] : { event: 'Falhas de autenticação', evidence: step.records };
+      item.append(link(`${time} · ${step.label}`, () => SocLogs.showDetails(detail)), entity);
+      return item;
+    });
+    el('story-items').replaceChildren(...items);
+  }
+
+  function renderReceipt(events, run) {
+    decision = SocReview.receipt(events, run.id, run.source);
+    el('receipt-controls').hidden = !decision;
+    el('receipt-status').textContent = decision
+      ? `${SocLogs.severity(decision.severity)} · ${decision.rule_id ? 'Regra ' + decision.rule_id : 'Triagem sem regra automática registrada'} · ${decision.provider} · ${decision.evidence_ids.length} evidências. ${decision.reason}`
+      : 'A rodada ainda não tem triagem registrada.';
+    fillList('receipt-actions', decision?.recommendations.map((action) => Object.hasOwn(recommendationLabels, action) ? recommendationLabels[action] : action) || []);
+    const evidence = new Map(events.filter((event) => typeof event.event_id === 'string').map((event) => [event.event_id, event]));
+    el('receipt-evidence').replaceChildren(...(decision?.evidence_ids || []).slice(0, 200).map((id) => {
+      const item = document.createElement('li');
+      const record = evidence.get(id);
+      item.append(record ? link(id, () => SocLogs.showDetails(record)) : `${id} · registro ausente nesta trilha`);
+      return item;
+    }));
+  }
+
+  function fingerprintTarget(context) {
+    return context.events.findLast((item) => ['login', 'privilege', 'admin_denied'].includes(item.kind) && typeof item.user === 'string' && item.user && Number.isFinite(item.time));
+  }
+
+  async function compareFingerprint() {
+    const target = fingerprintTarget(SocReview.facts(SocReview.timeline(runs.get(selected)?.events || [])));
+    if (!target) return;
+    const request = ++fingerprintRequest;
+    el('fingerprint-status').textContent = 'Calculando o perfil histórico da conta…';
+    fillList('fingerprint-items', []);
+    const data = await SocLogs.archiveAnalysis({ kind: 'baseline', user: target.user, host: target.host, before: target.time });
+    if (request !== fingerprintRequest) return;
+    if (!data) {
+      el('fingerprint-status').textContent = 'Abra a base em Investigar logs para calcular o perfil.';
+      return;
+    }
+    const profile = data.result;
+    el('fingerprint-status').textContent = `${target.user} · ${profile.count} logins aceitos anteriores · ${data.source}`;
+    if (profile.count < 12) {
+      fillList('fingerprint-items', ['Histórico insuficiente. São necessários pelo menos 12 logins anteriores para comparar.']);
+      return;
+    }
+    const hour = new Date(target.time).getUTCHours();
+    const share = profile.hours[hour] / profile.count;
+    const usual = profile.hours.reduce((best, count, index) => count > profile.hours[best] ? index : best, 0);
+    fillList('fingerprint-items', [
+      `Hora observada: ${hour}h UTC · ${(100 * share).toFixed(1)}% dos logins históricos. Hora mais frequente: ${usual}h UTC.`,
+      share < 0.05 ? 'Horário raro na base (menos de 5% dos logins anteriores).' : 'Horário recorrente na base.',
+      target.host ? `${target.host} · ${profile.knownHost ? 'host conhecido' : 'host sem login anterior'} entre ${profile.hosts} ativos do perfil.` : 'A evidência atual não identifica o host.',
+      'Sinais de contexto para investigação. A severidade permanece a da triagem.',
+    ]);
+  }
+
   function render(reset = true) {
     const run = runs.get(selected);
     if (!run) {
@@ -135,6 +217,9 @@ globalThis.SocAnalysis = (() => {
       stop();
       position = 0;
       preview = undefined;
+      fingerprintRequest++;
+      el('fingerprint-status').textContent = 'Compare o horário e o host com logins aceitos anteriores da mesma conta.';
+      fillList('fingerprint-items', []);
     }
     const context = SocReview.facts(events);
     const shadowAudit = events.findLast((event) => event.event === 'soar.shadow_preview' && event.applied === false);
@@ -156,6 +241,10 @@ globalThis.SocAnalysis = (() => {
     el('shadow-test').disabled = false;
     renderShadow();
     renderMemory(context, run);
+    renderStory(context);
+    renderReceipt(events, run);
+    el('incident-dna').textContent = context.sequence.length ? SocReview.signature(context) : 'Sem sequência identificada.';
+    el('fingerprint-test').disabled = !fingerprintTarget(context);
     renderReplay();
   }
 
@@ -222,13 +311,13 @@ globalThis.SocAnalysis = (() => {
     location.hash = '#analise';
   }
 
-  function openCase(id, title, records) {
-    const key = `caso:${id}`;
+  function openCase(id, title, records, source = 'case') {
+    const key = source === 'training' ? `arena:${id}` : `caso:${id}`;
     const events = SocReview.timeline(records.map((event) => ({
       ...event, event: typeof event.event === 'string' ? event.event : event.event_type || 'archive.record',
       timestamp: event.event_time || event.timestamp || event['@timestamp'],
     })));
-    runs.set(key, { id: key, title: title || 'Caso sem título', timestamp: events.at(-1)?.timestamp || '', source: 'case', events });
+    runs.set(key, { id: key, title: title || 'Caso sem título', timestamp: events.at(-1)?.timestamp || '', source, events });
     open(key);
   }
 
@@ -252,6 +341,17 @@ globalThis.SocAnalysis = (() => {
   el('replay-seek').addEventListener('input', (event) => { stop(); position = Number(event.target.value); renderReplay(); });
   el('challenge-json').addEventListener('click', () => { if (review) SocLogs.showDetails(review); });
   el('shadow-json').addEventListener('click', () => { if (preview) SocLogs.showDetails(preview); });
+  el('fingerprint-test').addEventListener('click', compareFingerprint);
+  el('receipt-json').addEventListener('click', () => { if (decision) SocLogs.showDetails(decision); });
+  el('receipt-download').addEventListener('click', () => {
+    if (!decision) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(decision, null, 2)], { type: 'application/json' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `comprovante-${decision.run}.json`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
   el('shadow-test').addEventListener('click', () => {
     preview = SocReview.shadow(SocReview.facts(ordered), selected);
     if (runs.get(selected)?.source === 'session') document.dispatchEvent(new CustomEvent('soc:shadow-preview', { detail: preview }));
@@ -263,8 +363,8 @@ globalThis.SocAnalysis = (() => {
     const resolution = el('memory-resolution').value;
     if (!run || !completed(run.events) || !Object.hasOwn(resolutionLabels, resolution)) return;
     const context = SocReview.facts(ordered);
-    const { sequence, failures, host, user, mitre } = context;
-    memory.set(run.id, { id: run.id, title: run.id, resolution, context: { sequence, failures, host, user, mitre } });
+    const { sequence, failures, host, user, mitre, assets } = context;
+    memory.set(run.id, { id: run.id, title: run.id, resolution, context: { sequence, failures, host, user, mitre, assets } });
     try {
       localStorage.setItem(memoryKey, JSON.stringify([...memory.values()].slice(-100)));
       el('memory-status').textContent = `Conclusão salva: ${resolutionLabels[resolution]}.`;
@@ -272,6 +372,7 @@ globalThis.SocAnalysis = (() => {
       el('memory-status').textContent = 'Conclusão registrada nesta sessão. O navegador não permitiu gravá-la.';
     }
     renderMemory(context, run);
+    SocDashboard.renderPulse();
   });
   el('analysis-import').addEventListener('click', () => el('analysis-file').click());
   el('analysis-file').addEventListener('change', async (event) => {
@@ -300,5 +401,51 @@ globalThis.SocAnalysis = (() => {
     else render(false);
   });
 
-  return { ingest, open, openCase, summary };
+  async function ask(question) {
+    const text = question.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+    const history = el('ask-history');
+    const item = document.createElement('li');
+    const prompt = document.createElement('strong');
+    const response = document.createElement('p');
+    prompt.textContent = question;
+    response.textContent = 'Consultando registros…';
+    item.append(prompt, response);
+    history.append(item);
+    if (history.childElementCount > 12) history.firstElementChild.remove();
+    history.scrollTop = history.scrollHeight;
+    if (/severidade|classific/.test(text)) {
+      const receipt = decision;
+      response.textContent = receipt
+        ? `${receipt.run} · ${SocLogs.severity(receipt.severity)}. ${receipt.reason}`
+        : 'Selecione uma rodada com triagem registrada para consultar a justificativa.';
+      if (receipt) item.append(link('Ver evidências no comprovante', () => SocLogs.showDetails(receipt)));
+    } else if (/\bips?\b/.test(text) && /falh|tentativ|login/.test(text)) {
+      const day = text.match(/\b\d{4}-\d{2}-\d{2}\b/)?.[0] || (/\bhoje\b/.test(text) ? new Date().toISOString().slice(0, 10) : '');
+      if (day && (!Number.isFinite(Date.parse(day)) || new Date(day).toISOString().slice(0, 10) !== day)) {
+        response.textContent = 'Informe uma data válida no formato AAAA-MM-DD.';
+        return;
+      }
+      const data = await SocLogs.archiveAnalysis({ kind: 'failed_ips', day });
+      if (!data) {
+        response.textContent = 'Abra a base em Investigar logs e envie a pergunta novamente.';
+        return;
+      }
+      response.textContent = `${data.result.day || 'Sem data'} UTC · ${data.result.total.toLocaleString('pt-BR')} falhas de SSH com IP de origem · ${data.source}.`;
+      for (const origin of data.result.top) {
+        item.append(link(`${origin.ip} · ${origin.count} · ver evento de exemplo`, () => SocLogs.showDetails(origin.example)));
+      }
+    } else response.textContent = 'Posso consultar falhas de SSH por IP em uma data ou explicar a severidade da rodada selecionada.';
+    history.scrollTop = history.scrollHeight;
+  }
+
+  el('ask-form').addEventListener('submit', (event) => {
+    event.preventDefault();
+    const input = el('ask-question');
+    const question = input.value.trim();
+    if (question) { input.value = ''; ask(question); }
+  });
+  for (const button of document.querySelectorAll('[data-ask]')) button.addEventListener('click', () => ask(button.dataset.ask));
+
+  SocDashboard.renderPulse();
+  return { ingest, open, openCase, summary, isReviewed: (id) => memory.has(id) };
 })();

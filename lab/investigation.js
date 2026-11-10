@@ -17,6 +17,10 @@ globalThis.SocLogs = (() => {
   let page = 0;
   let pages = 0;
   let requestId = 0;
+  let analyticsId = 0;
+  let archiveReady;
+  let resolveArchive;
+  const pendingAnalytics = new Map();
   let currentCase;
   let pendingFilters;
   const cases = new Map();
@@ -47,16 +51,16 @@ globalThis.SocLogs = (() => {
   }
 
   function workspace() {
-    const routes = { '#operacao': 'live', '#investigar': 'investigation', '#casos': 'cases', '#validacao': 'validation', '#analise': 'analysis' };
+    const routes = { '#operacao': 'live', '#investigar': 'investigation', '#casos': 'cases', '#validacao': 'validation', '#analise': 'analysis', '#arena': 'arena' };
     const view = routes[location.hash] || 'overview';
     const investigation = view === 'investigation' || view === 'cases';
     el('overview-view').hidden = view !== 'overview';
     el('live-view').hidden = view !== 'live';
     el('investigation-view').hidden = !investigation;
     el('validation-view').hidden = view !== 'validation';
-    el('analysis-view').hidden = view !== 'analysis';
+    for (const section of ['analysis', 'arena']) el(`${section}-view`).hidden = view !== section;
     el('investigation-view').classList.toggle('cases-view', view === 'cases');
-    for (const section of ['overview', 'live', 'investigation', 'cases', 'validation', 'analysis']) {
+    for (const section of ['overview', 'live', 'investigation', 'cases', 'validation', 'analysis', 'arena']) {
       const link = el(`link-${section}`);
       if (section === view) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
@@ -81,8 +85,12 @@ globalThis.SocLogs = (() => {
       worker = new Worker(url, { name: 'soc-investigation' });
       URL.revokeObjectURL(url);
       worker.onmessage = ({ data }) => receive(data);
-      worker.onerror = () => loadState('O explorador encontrou um erro. Reabra a página e tente carregar o arquivo novamente.', true);
+      worker.onerror = () => receive({ type: 'error', message: 'O explorador encontrou um erro. Reabra a página e tente carregar o arquivo novamente.' });
     }
+    resolveArchive?.(false);
+    for (const resolve of pendingAnalytics.values()) resolve(null);
+    pendingAnalytics.clear();
+    archiveReady = new Promise((resolve) => { resolveArchive = resolve; });
     requestId++;
     loaded = 0;
     page = 0;
@@ -108,6 +116,9 @@ globalThis.SocLogs = (() => {
         loadState(`${format.format(data.count)} registros lidos…`);
         break;
       case 'error':
+        resolveArchive?.(false);
+        for (const resolve of pendingAnalytics.values()) resolve(null);
+        pendingAnalytics.clear();
         loadState(data.message, true);
         globalThis.SocDashboard?.archiveState('Base indisponível');
         el('result-count').textContent = 'Falha ao carregar';
@@ -116,6 +127,7 @@ globalThis.SocLogs = (() => {
         break;
       case 'loaded':
         loaded = data.total;
+        resolveArchive?.(true);
         globalThis.SocDashboard?.archive(data);
         if (data.legacyUrl) {
           el('download-corpus').href = data.legacyUrl;
@@ -135,7 +147,21 @@ globalThis.SocLogs = (() => {
         renderRows(data.rows);
         pagination();
         break;
+      case 'analytics':
+        pendingAnalytics.get(data.id)?.(data);
+        pendingAnalytics.delete(data.id);
+        break;
     }
+  }
+
+  async function archiveAnalysis(query) {
+    if (!worker && location.protocol !== 'file:') load();
+    if (!await archiveReady) return null;
+    const id = ++analyticsId;
+    return new Promise((resolve) => {
+      pendingAnalytics.set(id, resolve);
+      worker.postMessage({ type: 'analytics', id, query });
+    });
   }
 
   function applyFilters() {
@@ -236,6 +262,7 @@ globalThis.SocLogs = (() => {
       el('case-storage').textContent = 'Armazenamento local indisponível. Exporte o caso antes de fechar.';
     }
     showCaseList();
+    document.dispatchEvent(new Event('soc:case-changed'));
   }
 
   function showCaseList() {
@@ -375,5 +402,12 @@ globalThis.SocLogs = (() => {
     }));
   }
 
-  return { showDetails, severity, openSearch, reviewedCases };
+  function pulseCases() {
+    return [...cases.values()].map((item) => ({
+      severity: item.severity, closed: item.status === 'encerrado', pending: false,
+      assets: Object.values(item.evidence).map((row) => row.host).filter(Boolean),
+    }));
+  }
+
+  return { showDetails, severity, openSearch, reviewedCases, archiveAnalysis, pulseCases };
 })();

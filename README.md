@@ -10,7 +10,9 @@ Laboratório de SOC para investigar abuso de credenciais, correlacionar evidênc
 - **Investigar logs** abre o explorador com 205.000 eventos sintéticos. Filtre pelo IP `198.51.100.27` para encontrar oito falhas de autenticação, um login aceito e uma consulta de privilégios. Abra o JSON original, selecione as evidências e exporte o caso.
 - **Operação ao vivo** inicia quatro VMs Linux isoladas no navegador. A rodada manual permite escolher as evidências, a severidade e a justificativa. A rodada assistida demonstra a correlação, a aprovação humana, o bloqueio por 45 segundos e a opção de desbloquear.
 - **Método e auditoria** mostra o escopo em relação ao guia, a avaliação reproduzível do detector e o JSON de triagem, aprovação, contenção e reversão.
-- **Análise de incidentes** reúne as cinco prioridades. Reproduza a trilha em ordem UTC, consulte contraprovas e lacunas, compare casos encerrados e simule o impacto da contenção HTTP. Abra uma rodada da sessão, a trilha de exemplo ou um arquivo JSONL de auditoria.
+- **Análise de incidentes** permite reproduzir a trilha UTC, consultar contraprovas e lacunas, comparar casos encerrados e simular a contenção HTTP. Abra uma rodada, a trilha de exemplo ou um JSONL de auditoria para ver a história com evidências, a assinatura do incidente e o comprovante da triagem.
+- **Ask Your SOC** consulta falhas de SSH por IP e explica a severidade registrada. As respostas usam consultas locais com escopo e referências. O perfil de acesso compara hora e host com logins anteriores da conta na base carregada.
+- **Visão geral** inclui o SOC Pulse, que mostra o risco de 0 a 100 e os fatores que alteraram a pontuação. Na **SOC Arena**, pratique a classificação e a escolha da evidência decisiva em três cenários fictícios.
 
 ## Rodar localmente
 

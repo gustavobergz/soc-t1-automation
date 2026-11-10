@@ -5,6 +5,7 @@ function archiveWorker() {
   let records = [];
   let cache;
   let generation = 0;
+  let archiveSource = '';
   const scalar = (value) => typeof value === 'string' || typeof value === 'number' ? String(value) : '';
   const normalizeSeverity = (value) => ({ high: 'alta', medium: 'media', low: 'baixa', média: 'media', informational: 'info' })[value] || value;
 
@@ -104,6 +105,7 @@ function archiveWorker() {
       if (loaded.length === 0) throw new Error('Nenhum objeto JSON válido encontrado. Use um objeto por linha.');
       loaded.sort((a, b) => (a.time || 0) - (b.time || 0));
       records = loaded;
+      archiveSource = source;
       postMessage({ type: 'loaded', total: records.length, invalid, types: [...types].sort(), source, legacyUrl: legacy || null, summary: summarize(records) });
     } catch (error) {
       if (token === generation) postMessage({ type: 'error', message: error.message });
@@ -133,8 +135,44 @@ function archiveWorker() {
     postMessage({ type: 'results', id, page: actualPage, pages, total: cache.matches.length, rows: cache.matches.slice(actualPage * size, (actualPage + 1) * size) });
   }
 
+  function analyze({ id, query }) {
+    if (query.kind === 'failed_ips') {
+      const last = records.findLast((row) => Number.isFinite(row.time))?.time;
+      const day = query.day || (last !== undefined ? new Date(last).toISOString().slice(0, 10) : '');
+      const from = Date.parse(`${day}T00:00:00.000Z`);
+      const to = from + 86_400_000;
+      const origins = new Map();
+      let total = 0;
+      for (const row of records) {
+        if (row.type !== 'ssh.failed' || !(row.time >= from && row.time < to) || !row.ip) continue;
+        total++;
+        if (!origins.has(row.ip)) origins.set(row.ip, { ip: row.ip, count: 0, example: row.raw });
+        origins.get(row.ip).count++;
+      }
+      const top = [...origins.values()].sort((a, b) => b.count - a.count || a.ip.localeCompare(b.ip)).slice(0, 5);
+      postMessage({ type: 'analytics', id, source: archiveSource, result: { day, total, top } });
+    }
+    if (query.kind === 'baseline') {
+      const hours = Array(24).fill(0);
+      const hosts = new Map();
+      let count = 0;
+      let first;
+      let last;
+      for (const row of records) {
+        if (row.type !== 'ssh.accepted' || row.user !== query.user || !Number.isFinite(row.time) || row.time >= query.before) continue;
+        count++;
+        hours[new Date(row.time).getUTCHours()]++;
+        if (row.host) hosts.set(row.host, (hosts.get(row.host) || 0) + 1);
+        first ??= row.time;
+        last = row.time;
+      }
+      postMessage({ type: 'analytics', id, source: archiveSource, result: { count, hours, knownHost: hosts.has(query.host), hosts: hosts.size, first, last } });
+    }
+  }
+
   self.onmessage = ({ data }) => {
     if (data.type === 'load') load(data);
     if (data.type === 'search') search(data);
+    if (data.type === 'analytics') analyze(data);
   };
 }

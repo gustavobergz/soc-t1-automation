@@ -38,4 +38,42 @@ test('reviewed memory finds the same sequence across addresses and excludes the 
   const matches = review.related(context, history, 'SOC-002');
   assert.deepEqual(matches.map((entry) => entry.id), ['SOC-001']);
   assert.match(matches[0].differences[0], /8 falhas agora × 6/);
+  assert.equal(matches[0].exact, true);
+  assert.notEqual(review.signature(context), review.signature({ ...context, host: 'endpoint-02' }));
+});
+
+test('story groups adjacent failures from the same entity and keeps their source records', () => {
+  const entries = [raw('C', 'ssh.failed', 3, '10.77.0.31'), raw('A', 'ssh.failed', 0), raw('B', 'ssh.failed', 2), raw('D', 'ssh.accepted', 5)];
+  const steps = review.story(review.facts(entries));
+  assert.deepEqual(steps.map((step) => step.records.map((record) => record.event_id)), [['A', 'B'], ['C'], ['D']]);
+  assert.match(steps[0].label, /2 falhas/);
+  assert.equal(steps[0].end - steps[0].time, 2000);
+});
+
+test('a receipt records the source evidence and separates triage from the human action', () => {
+  const entries = [
+    { event: 'siem.correlated', rule_id: 100501, evidence_ids: ['A', 'B'] },
+    { event: 'soar.triaged', timestamp: '2026-11-10T00:00:04Z', provider: 'fixture', severity: 'alta', result: {
+      evidence_ids: ['B', 'B'], severity_reason: 'Consulta observada', recommendations: ['investigar_conta'],
+    } },
+    { event: 'soar.approval_rejected', action: 'reject_http_block', actor: 'analista-demo' },
+  ];
+  const receipt = review.receipt(entries, 'SOC-123', 'sample');
+  assert.deepEqual(receipt.evidence_ids, ['B']);
+  assert.equal(receipt.rule_id, 100501);
+  assert.equal(receipt.reason, 'Consulta observada');
+  assert.equal(receipt.human_or_policy_decision.actor, 'analista-demo');
+  assert.deepEqual(receipt.recommendations, ['investigar_conta']);
+});
+
+test('pulse counts open issues and distinct assets and caps the score', () => {
+  const cases = [
+    { severity: 'alta', assets: ['endpoint'], pending: true },
+    { severity: 'media', assets: ['endpoint', 'server'] },
+    { severity: 'alta', assets: ['closed'], closed: true },
+  ];
+  assert.deepEqual(review.pulse(cases), {
+    score: 43, active: 2, assets: 2, pending: 1, points: { severity: 27, assets: 8, approval: 8 },
+  });
+  assert.equal(review.pulse(Array(12).fill(cases[0])).score, 100);
 });
