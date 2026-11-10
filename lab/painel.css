@@ -33,7 +33,7 @@ button:disabled { cursor: default; opacity: .48; }
 .shell { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); min-height: 100vh; }
 .topbar { position: sticky; top: 0; z-index: 5; grid-column: 1 / -1; display: grid; grid-template-columns: var(--sidebar-width) minmax(150px, .8fr) minmax(160px, 3fr) minmax(165px, 1fr); align-items: center; gap: 16px; min-height: var(--header-height); padding-right: 22px; background: #050c17; border-bottom: 1px solid #14243b; }
 .top-logo { display: flex; justify-content: center; align-items: center; gap: 9px; align-self: center; height: 46px; border-right: 1px solid #263653; color: #d6eeff; }
-.top-logo .icon { width: 28px; height: 28px; color: var(--accent); filter: drop-shadow(0 0 7px #149cff70); }
+.top-logo img { width: 40px; height: 40px; flex: none; filter: drop-shadow(0 0 7px #149cff60); }
 .top-logo span { display: grid; gap: 3px; }
 .top-logo strong { font: 700 .91rem var(--mono); white-space: nowrap; }
 .top-logo small { color: var(--subtle); font: .59rem var(--mono); letter-spacing: .11em; }
@@ -295,7 +295,8 @@ dialog pre { padding: 10px; background: #081323; border: 1px solid var(--border)
 }
 @media (max-width: 580px) {
   .topbar { grid-template-columns: 128px minmax(0, 1fr) auto; gap: 6px 9px; padding: 6px 12px 9px; }
-  .top-logo .icon { width: 23px; height: 23px; }
+  .top-logo { gap: 6px; }
+  .top-logo img { width: 32px; height: 32px; }
   .top-product span { font-size: .65rem; }
   .global-search { grid-column: 1 / -1; grid-row: 2; }
   .global-search button kbd { display: none; }

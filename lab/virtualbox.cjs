@@ -22,6 +22,7 @@ const commands = {
 };
 const assets = new Map([
   ['/', ['DEMO SOC.html', 'text/html; charset=utf-8']],
+  ['/lab/assets/soc-shield.svg', ['lab/assets/soc-shield.svg', 'image/svg+xml']],
   ['/lab/painel.js', ['lab/painel.js', 'text/javascript; charset=utf-8']],
   ['/lab/painel.css', ['lab/painel.css', 'text/css; charset=utf-8']],
   ['/lab/dashboard.js', ['lab/dashboard.js', 'text/javascript; charset=utf-8']],
