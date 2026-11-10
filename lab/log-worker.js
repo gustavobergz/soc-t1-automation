@@ -25,7 +25,7 @@ function archiveWorker() {
     };
   }
 
-  async function load({ url, file, source }) {
+  async function load({ url, file, source, legacyUrl }) {
     const token = ++generation;
     records = [];
     cache = null;
@@ -53,7 +53,12 @@ function archiveWorker() {
     }
 
     try {
-      const response = file ? null : await fetch(url);
+      let response = file ? null : await fetch(url);
+      const legacy = response?.status === 404 && legacyUrl;
+      if (legacy) {
+        response = await fetch(legacyUrl);
+        source = source.slice(0, -3);
+      }
       if (response && !response.ok) throw new Error(`Arquivo indisponível (HTTP ${response.status}).`);
       const input = file ? file.stream() : response.body;
       const stream = source.toLowerCase().endsWith('.gz') ? input.pipeThrough(new DecompressionStream('gzip')) : input;
@@ -77,7 +82,7 @@ function archiveWorker() {
       if (loaded.length === 0) throw new Error('Nenhum objeto JSON válido encontrado. Use um objeto por linha.');
       loaded.sort((a, b) => (a.time || 0) - (b.time || 0));
       records = loaded;
-      postMessage({ type: 'loaded', total: records.length, invalid, types: [...types].sort(), source });
+      postMessage({ type: 'loaded', total: records.length, invalid, types: [...types].sort(), source, legacyUrl: legacy || null });
     } catch (error) {
       if (token === generation) postMessage({ type: 'error', message: error.message });
     }

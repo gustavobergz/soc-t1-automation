@@ -57,6 +57,14 @@ foreach ($machine in $machines) {
 if ($Mode -ne 'Start') { exit }
 
 $node = Get-Command node -ErrorAction Stop
+$bridge = Join-Path $PSScriptRoot 'lab\virtualbox.cjs'
+$listener = Get-NetTCPConnection -LocalAddress '127.0.0.1' -LocalPort 8771 -State Listen -ErrorAction SilentlyContinue
+if ($listener) {
+    $owner = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)"
+    if ($owner.Name -ne 'node.exe' -or $owner.CommandLine.IndexOf($bridge, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
+        throw 'A porta 8771 esta em uso por outro programa.'
+    }
+}
 $imageHash = (Get-FileHash -LiteralPath $image -Algorithm SHA256).Hash
 foreach ($machine in $machines) {
     $name = $machine.Name
@@ -71,5 +79,9 @@ foreach ($machine in $machines) {
     }
 }
 
-$bridge = Join-Path $PSScriptRoot 'lab\virtualbox.cjs'
+if ($listener) {
+    Write-Host 'Painel VirtualBox ja disponivel em http://127.0.0.1:8771/'
+    if (!$NoOpen) { Start-Process 'http://127.0.0.1:8771/' }
+    exit 0
+}
 if ($NoOpen) { & $node.Source $bridge } else { & $node.Source $bridge --open }

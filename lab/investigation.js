@@ -86,7 +86,10 @@ globalThis.SocLogs = (() => {
     el('clear-search').disabled = true;
     const source = file?.name || corpus;
     loadState(`Carregando ${source}…`);
-    worker.postMessage({ type: 'load', source, file, url: file ? null : new URL(`logs/${corpus}`, location.href).href });
+    worker.postMessage({
+      type: 'load', source, file, url: file ? null : new URL(`logs/${corpus}`, location.href).href,
+      legacyUrl: !file && !hosted ? new URL(`logs/${corpus.slice(0, -3)}`, location.href).href : null,
+    });
   }
 
   function receive(data) {
@@ -102,6 +105,10 @@ globalThis.SocLogs = (() => {
         break;
       case 'loaded':
         loaded = data.total;
+        if (data.legacyUrl) {
+          el('download-corpus').href = data.legacyUrl;
+          el('download-corpus').textContent = 'Base de 205 mil eventos (.jsonl)';
+        }
         loadState(`${format.format(loaded)} registros · ${data.source}${data.invalid ? ` · ${format.format(data.invalid)} linhas inválidas ignoradas` : ''}`);
         el('search-type').replaceChildren(new Option('Todos', ''), ...data.types.map((type) => new Option(type, type)));
         el('apply-search').disabled = false;

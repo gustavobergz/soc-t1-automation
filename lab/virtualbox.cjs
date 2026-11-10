@@ -20,7 +20,7 @@ const commands = {
   soar: /^(?:manual-triage SOC-\d{3,24} (?:alta|media|baixa) [A-Za-z0-9_-]{4,1600}|(?:approve|reject|rollback) SOC-\d{3,24})$/,
 };
 const assets = new Map([
-  ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/', ['DEMO SOC.html', 'text/html; charset=utf-8']],
   ['/lab/painel.js', ['lab/painel.js', 'text/javascript; charset=utf-8']],
   ['/lab/painel.css', ['lab/painel.css', 'text/css; charset=utf-8']],
   ['/lab/investigation.js', ['lab/investigation.js', 'text/javascript; charset=utf-8']],

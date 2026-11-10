@@ -1,7 +1,168 @@
 <!doctype html>
 <html lang="pt-BR">
-<meta charset="utf-8">
-<title>Abrir laboratório SOC</title>
-<script>location.replace(new URL(`index.html${location.hash}`, location.href));</script>
-<p><a href="index.html">Abrir laboratório SOC</a></p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>SOC Tier 1 | Laboratório de resposta</title>
+  <link rel="stylesheet" href="lab/painel.css">
+  <script defer src="lab/log-worker.js"></script>
+  <script defer src="lab/investigation.js"></script>
+  <script defer src="lab/painel.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div class="topline">
+        <div class="brand"><span class="brand-mark" aria-hidden="true">◈</span> SOC TIER 1 <span class="brand-sep">/</span> LABORATÓRIO</div>
+        <div class="network"><span id="runtime">REDE VIRTUAL ISOLADA</span> · 10.77.0.0/24</div>
+      </div>
+      <div class="headline">
+        <p class="eyebrow">DEMONSTRAÇÃO DE ABUSO DE CREDENCIAIS</p>
+        <h1>Da fadiga de alertas<br><em>à contenção.</em></h1>
+        <p class="intro">Quatro VMs Linux reproduzem abuso de credenciais, triagem assistida e contenção temporária com aprovação humana.</p>
+      </div>
+    </header>
+
+    <nav class="workspace-nav" aria-label="Áreas do laboratório">
+      <a href="#operacao" id="link-live" aria-current="page">Operação ao vivo</a>
+      <a href="#investigar" id="link-investigation">Investigar logs <span>205 mil eventos</span></a>
+    </nav>
+
+    <div id="live-view">
+
+    <section class="machines" aria-label="Máquinas virtuais">
+      <article class="machine" data-vm="manager"><div class="vm-top"><span>VM 01</span><span class="vm-state">Inicializando</span></div><h2>SIEM</h2><p>Papel do Wazuh Manager</p><code>10.77.0.10</code></article>
+      <article class="machine" data-vm="victim"><div class="vm-top"><span>VM 02</span><span class="vm-state">Inicializando</span></div><h2>Endpoint</h2><p>Autenticação e contenção</p><code>10.77.0.20</code></article>
+      <article class="machine" data-vm="attacker"><div class="vm-top"><span>VM 03</span><span class="vm-state">Inicializando</span></div><h2>Atacante</h2><p>Reprodução de autenticação</p><code>10.77.0.30</code></article>
+      <article class="machine" data-vm="soar"><div class="vm-top"><span>VM 04</span><span class="vm-state">Inicializando</span></div><h2>SOAR</h2><p>Triagem e playbook de resposta</p><code>10.77.0.40</code></article>
+    </section>
+
+    <section class="controls" aria-label="Executar cenário">
+      <div class="actions">
+        <button id="manual" type="button" disabled>1. Rodada manual</button>
+        <button id="auto" class="primary" type="button" disabled>2. Rodada assistida</button>
+        <button id="failure" type="button" disabled>Testar falha de triagem</button>
+      </div>
+      <p id="status" role="status">Inicializando as quatro VMs. Mantenha esta aba aberta.</p>
+    </section>
+
+    <section class="panel comparison" aria-labelledby="metrics-title">
+      <div class="panel-header"><div><p class="eyebrow">EXPERIMENTO CONTROLADO</p><h2 id="metrics-title">Métricas por rodada</h2></div><span class="pill">TEMPOS MEDIDOS</span></div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th scope="col">Fluxo</th><th scope="col">Eventos brutos</th><th scope="col">Incidentes</th><th scope="col">Detecção</th><th scope="col">Triagem</th><th scope="col">Aprovação</th><th scope="col">Resposta</th></tr></thead>
+          <tbody>
+            <tr id="metrics-manual"><th scope="row">Manual</th><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr id="metrics-auto"><th scope="row">Assistido</th><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Resposta medida da identificação até o bloqueio, incluindo o tempo de aprovação.</p>
+    </section>
+
+    <div class="operations">
+      <section class="panel telemetry" aria-labelledby="telemetry-title">
+        <div class="panel-header">
+          <div><p class="eyebrow">TELEMETRIA DA RODADA</p><h2 id="telemetry-title">Eventos das VMs</h2></div>
+          <button id="export" class="compact" type="button" disabled>Exportar JSONL</button>
+        </div>
+        <div class="filters" aria-label="Filtrar por VM">
+          <button type="button" data-filter="all" aria-pressed="true">Todas</button>
+          <button type="button" data-filter="attacker" aria-pressed="false">Atacante</button>
+          <button type="button" data-filter="victim" aria-pressed="false">Endpoint</button>
+          <button type="button" data-filter="manager" aria-pressed="false">SIEM</button>
+          <button type="button" data-filter="soar" aria-pressed="false">SOAR</button>
+        </div>
+        <div id="live-evidence" class="evidence-toolbar" hidden>
+          <span id="live-evidence-count" role="status">0 evidências marcadas</span>
+          <button id="live-only" class="compact" type="button" aria-pressed="false" disabled>Ver marcadas</button>
+        </div>
+        <div class="event-head" aria-hidden="true"><span></span><span>HORA UTC</span><span>ORIGEM</span><span>EVENTO</span></div>
+        <ol id="events" class="events" aria-label="Eventos em ordem inversa de recebimento"></ol>
+      </section>
+
+      <section class="panel incident" aria-labelledby="incident-title">
+        <div class="panel-header">
+          <div><p class="eyebrow">RESPOSTA AO INCIDENTE</p><h2 id="incident-title">Playbook</h2></div>
+          <span id="severity" class="pill">EM ESPERA</span>
+        </div>
+        <div class="operator-actions">
+          <button id="manual-detect" class="compact" type="button" hidden>Identificar incidente</button>
+          <button id="approve" class="compact primary" type="button" hidden>Aprovar bloqueio</button>
+          <button id="reject" class="compact" type="button" hidden>Rejeitar</button>
+          <button id="rollback" class="compact" type="button" hidden>Desbloquear agora</button>
+        </div>
+        <form id="manual-triage" class="triage-form" hidden>
+          <label>Severidade<select id="manual-severity" required><option value="">Selecione</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></label>
+          <label>Justificativa<textarea id="manual-reason" rows="2" minlength="3" maxlength="300" required placeholder="O que os registros selecionados mostram?"></textarea></label>
+          <button id="save-triage" class="compact primary" type="submit">Registrar triagem</button>
+        </form>
+        <ol class="steps">
+          <li id="detect"><span class="step-number">01</span><div><strong>Identificar</strong><p>5 ou mais falhas → login aceito → sudo -l em até 120 s.</p></div></li>
+          <li id="enrich"><span class="step-number">02</span><div><strong>Enriquecer</strong><p>Reputação sintética e técnicas MITRE ATT&amp;CK.</p></div></li>
+          <li id="triage"><span class="step-number">03</span><div><strong>Triar</strong><p>Resumo e recomendação de contenção simulados.</p></div></li>
+          <li id="approve-step"><span class="step-number">04</span><div><strong>Validar política e aprovar</strong><p>Somente a origem de teste é elegível. SIEM, endpoint e SOAR são protegidos.</p></div></li>
+          <li id="contain"><span class="step-number">05</span><div><strong>Conter e verificar</strong><p>O bloqueio temporário permite expiração ou desbloqueio antecipado.</p></div></li>
+          <li id="ticket"><span class="step-number">06</span><div><strong>Registrar e notificar</strong><p>Ticket local, notificação simulada e auditoria em JSONL.</p></div></li>
+        </ol>
+      </section>
+    </div>
+    </div>
+
+    <section id="investigation-view" class="investigation" aria-labelledby="investigation-title" hidden>
+      <div class="archive-heading">
+        <div><p class="eyebrow">TRIAGEM E EVIDÊNCIAS</p><h2 id="investigation-title">Explorador de logs</h2><p>Filtre eventos, confira a linha original e reúna evidências em um caso.</p></div>
+        <div class="actions"><button id="load-corpus" class="primary" type="button">Carregar base de exemplo</button><button id="import-logs" type="button">Importar logs</button><input id="log-file" type="file" accept=".jsonl,.ndjson,.gz,application/x-ndjson,application/gzip" hidden></div>
+      </div>
+      <p id="load-state" class="dataset-state" role="status">Carregue a base sintética ou abra um arquivo JSONL.</p>
+
+      <div class="investigation-grid">
+        <section class="panel archive-results" aria-label="Resultados da busca">
+          <form id="search-logs" class="search-form">
+            <label class="wide">Buscar nos registros<input id="search-text" name="text" type="search" placeholder="ID, mensagem, tipo ou termo" maxlength="200"></label>
+            <label>Severidade<select name="severity"><option value="">Todas</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option><option value="info">Informativa</option></select></label>
+            <label>Tipo<select id="search-type" name="type"><option value="">Todos</option></select></label>
+            <label>IP de origem<input id="search-ip" name="ip" placeholder="198.51.100.27" maxlength="100"></label>
+            <label>Usuário<input name="user" placeholder="soclab" maxlength="100"></label>
+            <label>Host<input name="host" placeholder="financeiro-07" maxlength="100"></label>
+            <label>De (UTC)<input type="datetime-local" name="from"></label>
+            <label>Até (UTC)<input type="datetime-local" name="to"></label>
+            <div class="search-actions"><button id="apply-search" type="submit" class="primary compact" disabled>Buscar</button><button id="clear-search" type="button" class="compact" disabled>Limpar filtros</button><label class="check-label"><input id="selected-filter" name="selected" type="checkbox"> Só evidências</label></div>
+          </form>
+          <div class="result-toolbar">
+            <strong id="result-count" role="status">Nenhum arquivo carregado</strong>
+            <label class="check-label">Ordem<select id="archive-sort"><option value="desc">Mais novos</option><option value="asc">Mais antigos</option></select></label>
+          </div>
+          <div class="table-scroll archive-scroll">
+            <table class="archive-table" aria-label="Eventos filtrados">
+              <thead><tr><th scope="col" aria-label="Evidência">✓</th><th scope="col">Horário UTC</th><th scope="col">Severidade</th><th scope="col">Evento</th><th scope="col">Host / usuário</th><th scope="col">IP</th></tr></thead>
+              <tbody id="archive-rows"><tr><td colspan="6">Aguardando a base de logs.</td></tr></tbody>
+            </table>
+          </div>
+          <div class="page-controls"><button id="page-prev" type="button" class="compact" disabled>Anterior</button><span id="page-position">Página 0 de 0</span><button id="page-next" type="button" class="compact" disabled>Próxima</button><label class="check-label"><select id="page-size" aria-label="Registros por página"><option value="50">50 por página</option><option value="100">100 por página</option></select></label></div>
+        </section>
+
+        <aside class="panel case-panel" aria-labelledby="case-heading">
+          <div class="panel-header"><div><p class="eyebrow">INVESTIGAÇÃO LOCAL</p><h2 id="case-heading">Caso e evidências</h2></div><button id="new-case" type="button" class="compact">Novo caso</button></div>
+          <label>Casos deste navegador<select id="case-list"><option value="">Caso atual</option></select></label>
+          <label>Título<input id="case-title" placeholder="Ex.: autenticação em financeiro-07" maxlength="120"></label>
+          <div class="case-fields"><label>Severidade<select id="case-severity"><option value="">A classificar</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></label><label>Status<select id="case-status"><option value="investigando">Em investigação</option><option value="encerrado">Encerrado</option></select></label></div>
+          <label>Justificativa / notas<textarea id="case-notes" rows="3" maxlength="2000" placeholder="O que liga estes eventos ao caso?"></textarea></label>
+          <h3 id="case-evidence-count">0 evidências</h3>
+          <ul id="case-evidence" class="case-evidence" aria-label="Registros marcados"></ul>
+          <button id="export-case" type="button" class="compact" disabled>Exportar caso JSON</button>
+          <p id="case-storage" class="dataset-state" role="status">Casos locais do explorador são separados da contenção ao vivo.</p>
+        </aside>
+      </div>
+    </section>
+    <dialog id="log-detail" aria-labelledby="detail-title">
+      <div class="panel-header"><div><p class="eyebrow">REGISTRO ORIGINAL</p><h2 id="detail-title">Detalhe do evento</h2></div><form method="dialog"><button type="submit" class="compact" aria-label="Fechar detalhes">Fechar</button></form></div>
+      <p id="detail-message"></p><pre id="detail-json"></pre>
+      <div class="actions"><button id="detail-select" type="button" class="compact primary" hidden>Marcar como evidência</button><button id="detail-pivot" type="button" class="compact" hidden>Filtrar por este IP</button></div>
+    </dialog>
+    <footer><p>Dados simulados. A contenção se aplica ao serviço HTTP do laboratório.</p><div><a href="logs/soc-demo.jsonl" download>Log das rodadas</a><a id="download-corpus" href="logs/soc-investigacao-205k.jsonl.gz" download>Base de 205 mil eventos (.gz)</a></div></footer>
+    <noscript>Ative o JavaScript no navegador para inicializar as VMs.</noscript>
+  </main>
+</body>
 </html>
