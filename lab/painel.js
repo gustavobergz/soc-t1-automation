@@ -7,11 +7,15 @@ const vmNames = { attacker: 'Atacante', victim: 'Endpoint', manager: 'SIEM', soa
 const steps = ['detect', 'enrich', 'triage', 'approve-step', 'contain', 'ticket'];
 const defaults = Object.fromEntries(steps.map((step) => [step, $(step).querySelector('p').textContent]));
 const seconds = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+const percentage = new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 1 });
+const utcTime = (value) => `${new Date(value).toISOString().slice(11, 19)} UTC`;
+const automation = new Map();
 let lab;
 let current;
 let sequence = 0;
 let filter = 'all';
 let timeout;
+let llmConfigured = false;
 const virtualBox = location.origin === 'http://127.0.0.1:8771';
 
 function status(message, error = false) {
@@ -22,7 +26,9 @@ function status(message, error = false) {
 function updateActions() {
   const online = Boolean(lab && ready.size === 4);
   const phase = current?.phase;
-  for (const id of ['manual', 'auto', 'failure']) $(id).disabled = !online || (phase && phase !== 'done');
+  for (const id of ['manual', 'auto', 'failure', 'llm']) $(id).disabled = !online || (phase && phase !== 'done');
+  $('llm').hidden = !llmConfigured;
+  $('benchmark').disabled = !lab || !ready.has('manager');
   for (const [id, show] of Object.entries({
     'manual-detect': phase === 'manual-detect', 'manual-triage': phase === 'manual-triage',
     approve: phase === 'pending', reject: phase === 'pending',
@@ -32,6 +38,8 @@ function updateActions() {
     if (id !== 'manual-triage') $(id).disabled = !online;
   }
   $('save-triage').disabled = !online;
+  $('view-triage').hidden = !current?.triageAudit;
+  $('view-audit').hidden = !current?.auditAvailable;
   updateEvidence();
   $('export').disabled = records.length === 0;
 }
@@ -140,17 +148,30 @@ function metrics() {
 function showMetrics() {
   if (current.mode === 'failure') return;
   const result = metrics();
-  const cells = $(`metrics-${current.mode}`).querySelectorAll('td');
+  const cells = $(`metrics-${current.mode === 'llm' ? 'auto' : current.mode}`).querySelectorAll('td');
   Object.values(result).forEach((value, index) => {
     cells[index].textContent = value === null ? '—' : index < 2 ? String(value) : `${seconds.format(value / 1000)} s`;
   });
+}
+
+function showSessionMetrics() {
+  const measured = records.filter((event) => event.event === 'panel.metrics' && event.response_ms !== null);
+  for (const [mode, label] of [['manual', 'manual'], ['auto', 'assistido']]) {
+    const values = measured.filter((event) => mode === 'manual' ? event.mode === 'manual' : ['auto', 'llm'].includes(event.mode));
+    const mean = values.length ? values.reduce((sum, event) => sum + event.response_ms, 0) / values.length : null;
+    $(`mttr-${mode}`).textContent = `MTTR ${label} ${mean === null ? '—' : `${seconds.format(mean / 1000)} s (n=${values.length})`}`;
+  }
+  const automated = [...automation.values()].filter(Boolean).length;
+  $('automation-rate').textContent = `Automação elegível ${automation.size ? `${percentage.format(automated / automation.size)} (${automated}/${automation.size})` : '—'}`;
 }
 
 function recordMetrics(outcome) {
   if (current.measured) return;
   current.measured = true;
   records.push({ timestamp: new Date().toISOString(), vm: 'panel', event: 'panel.metrics', run: current.id, mode: current.mode,
-    synthetic: true, message: 'Métricas observadas no painel para esta rodada.', outcome, ...metrics() });
+    synthetic: true, message: 'Métricas observadas no painel para esta rodada.', outcome, ...metrics(),
+    automation_eligible: automation.has(current.id), automatic_triage: automation.get(current.id) === true });
+  showSessionMetrics();
 }
 
 function finish(message, outcome) {
@@ -173,9 +194,9 @@ function operationError(message) {
   }
 }
 
-function expectEvent() {
+function expectEvent(delay = 30000) {
   clearTimeout(timeout);
-  timeout = setTimeout(() => operationError('Tempo limite na comunicação com as VMs.'), 30000);
+  timeout = setTimeout(() => operationError('Tempo limite na comunicação com as VMs.'), delay);
 }
 
 async function command(role, line) {
@@ -248,6 +269,7 @@ function checkProbe(event) {
 function onEvent(event) {
   records.push(event);
   globalThis.SocDashboard?.ingest(event);
+  globalThis.SocValidation?.ingest(event);
   if (event.event === 'vm.ready' || event.event === 'vm.offline') {
     if (event.event === 'vm.ready') {
       ready.add(event.vm);
@@ -290,9 +312,10 @@ function onEvent(event) {
     case 'siem.manual_detected':
     case 'siem.correlated':
       current.marks.detected = now;
+      current.auditAvailable = true;
       $('severity').textContent = event.incident;
       setStep('detect', event.rule_id
-        ? `Regra ${event.rule_id} · ${event.failures} falhas, login aceito e sudo -l para ${event.username}.`
+        ? `Regra ${event.rule_id} · ${event.failures} falhas em até ${event.failure_window_seconds || 120} s, login aceito e sudo -l para ${event.username}.`
         : `${event.evidence_ids.length} evidências vinculadas · ${event.failures} falhas selecionadas para ${event.username}.`);
       break;
     case 'siem.selection_rejected':
@@ -306,14 +329,28 @@ function onEvent(event) {
       status(`${current.id} · Escolha a severidade e justifique a classificação.`);
       break;
     case 'soar.enriched':
-      setStep('enrich', `Reputação sintética ${event.reputation}/100 · ${event.mitre.join(' e ')}.`);
+      automation.set(event.run, false);
+      showSessionMetrics();
+      setStep('enrich', `AbuseIPDB simulado ${event.reputation}/100 · VirusTotal não consultado · ${event.mitre.join(' e ')}. T1068 não atribuído.`);
+      break;
+    case 'soar.triage_requested':
+      expectEvent(50000);
+      status(`${current.id} · Aguardando triagem do Ollama local.`);
+      break;
+    case 'soar.triage_failed':
+      current.triageAudit = event;
       break;
     case 'soar.manual_triaged':
     case 'soar.triaged':
       current.marks.triaged = now;
+      current.triageAudit = event;
+      if (event.event === 'soar.triaged' && event.validation === 'passed') {
+        automation.set(event.run, true);
+        showSessionMetrics();
+      }
       $('severity').classList.add(`severity-${event.severity}`);
       $('severity').textContent = `SEVERIDADE ${SocLogs.severity(event.severity).toUpperCase()}`;
-      setStep('triage', event.result ? `${event.message} ${event.result.uncertainty}.` : event.justification);
+      setStep('triage', event.result ? `${event.simulation ? 'Simulada' : 'Ollama local'} · JSON validado · ${event.result.uncertainty}` : event.justification);
       break;
     case 'soar.triage_rejected':
       clearTimeout(timeout);
@@ -333,7 +370,7 @@ function onEvent(event) {
       break;
     case 'soar.approval_granted':
       current.marks.approved = now;
-      setStep('approve-step', `${event.actor} autorizou o bloqueio com base em ${event.evidence_ids.length} evidências.`);
+      setStep('approve-step', `${event.actor} aprovou às ${utcTime(event.timestamp)} com ${event.evidence_ids.length} evidências.`);
       break;
     case 'soar.approval_rejected':
       setStep('approve-step', `${event.actor} rejeitou a contenção.`);
@@ -347,6 +384,8 @@ function onEvent(event) {
     case 'endpoint.block_applied':
       current.phase = 'blocked';
       current.marks.blocked = now;
+      $('block-deadline').hidden = false;
+      $('block-deadline').textContent = `Prazo de ${event.ttl_seconds} s · expiração prevista às ${utcTime(event.expires_at)}.`;
       setStep('contain', `${event.source_ip} bloqueado por ${event.ttl_seconds} s · verificando a sonda.`, false);
       probe('contained');
       break;
@@ -369,6 +408,7 @@ function onEvent(event) {
     case 'endpoint.block_released':
       current.released = event.reason;
       current.phase = 'waiting';
+      $('block-deadline').textContent = `Origem liberada às ${utcTime(event.timestamp)} por ${event.reason === 'rollback' ? 'desbloqueio manual' : 'expiração automática'}.`;
       vmState('attacker', 'Online');
       probe('released');
       break;
@@ -397,6 +437,7 @@ function run(mode) {
   $('severity').textContent = mode === 'manual' ? 'MODO MANUAL' : 'EM ESPERA';
   $('severity').className = 'pill';
   $('manual-triage').reset();
+  $('block-deadline').hidden = true;
   for (const step of steps) setStep(step, defaults[step], false);
   selectFilter(mode === 'manual' ? 'manager' : 'all');
   status(`${current.id} · Preparando a vítima para a rodada.`);
@@ -406,7 +447,17 @@ function run(mode) {
   command('victim', ['prepare']);
 }
 
-for (const id of ['manual', 'auto', 'failure']) $(id).addEventListener('click', () => run(id));
+for (const id of ['manual', 'auto', 'failure', 'llm']) $(id).addEventListener('click', () => run(id));
+$('view-triage').addEventListener('click', () => SocLogs.showDetails(current.triageAudit));
+$('view-audit').addEventListener('click', () => globalThis.SocValidation?.openAudit(current.id));
+$('benchmark').addEventListener('click', async () => {
+  try {
+    await lab.command('manager', 'benchmark');
+    location.hash = '#validacao';
+  } catch (error) {
+    status(`Avaliação indisponível. ${error.message}`, true);
+  }
+});
 for (const id of ['approve', 'reject', 'rollback']) {
   $(id).addEventListener('click', () => manualStep('soar', id));
 }
@@ -454,6 +505,11 @@ function loadScript(src) {
 
 function useVirtualBox() {
   $('runtime').textContent = 'VIRTUALBOX · REDE ISOLADA';
+  fetch('/api/capabilities').then((response) => response.ok ? response.json() : null).then((capabilities) => {
+    llmConfigured = Boolean(capabilities?.ollama_model);
+    if (llmConfigured) $('llm-status').textContent = `Ollama local configurado · ${capabilities.ollama_model}`;
+    updateActions();
+  }).catch(() => {});
   const events = new EventSource('/api/events');
   events.onmessage = ({ data }) => onEvent(JSON.parse(data));
   events.onerror = () => status('Painel desconectado. Mantenha o iniciador VirtualBox aberto.', true);

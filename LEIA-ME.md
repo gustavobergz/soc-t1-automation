@@ -1,6 +1,6 @@
 # Autonomous SOC Tier 1
 
-Laboratório de demonstração adaptado ao guia técnico enviado. Quatro VMs Alpine Linux reproduzem os papéis de Wazuh, endpoint, estação de teste e SOAR. A autenticação, a reputação, o LLM, o ticket e a notificação são simulados. O tráfego entre VMs e a restrição HTTP no serviço da vítima são reais dentro do laboratório.
+Laboratório de demonstração adaptado ao guia técnico enviado. Quatro VMs Linux inicializam como convidados do VirtualBox ou do v86. O programa Go representa os papéis de Wazuh Manager/Agent e de um playbook n8n. Autenticação, reputação, ticket, notificação e a triagem padrão são simulados. O tráfego entre as VMs e a recusa no serviço HTTP da vítima ocorrem dentro do laboratório. A implantação de Wazuh Manager, Dashboard e Agent com telemetria real, do workflow n8n e do firewall ou Active Response faz parte da etapa de integração. [Wazuh Active Response](https://documentation.wazuh.com/current/user-manual/capabilities/active-response/index.html) · [Aprovação com o nó Wait do n8n](https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.wait/)
 
 ## Abrir no VirtualBox
 
@@ -31,9 +31,9 @@ As quatro VMs ficam na rede interna `SOC-TIER1-DEMO`, faixa `10.77.0.0/24`, sem 
 | --- | --- |
 | 0–2 min | Apresente o abuso de credenciais e a fadiga de alertas. Mostre o grupo de VMs e a rede interna. |
 | 2–4 min | Execute **Rodada manual**. Abra os detalhes dos eventos, marque as evidências individualmente e use **Ver marcadas** para conferir a seleção. Clique em **Identificar incidente**, escolha Alta, Média ou Baixa e escreva uma justificativa. Para demonstrar o bloqueio, selecione pelo menos cinco falhas, o login aceito e `sudo -l`, classifique como Alta e aprove a contenção. Use **Desbloquear agora** para liberar a próxima rodada. |
-| 4–6 min | Execute **Rodada assistida**. Mostre a regra 100501, a reputação sintética e a triagem estruturada. As duas rodadas reproduzem oito falhas de SSH, um login aceito e uma consulta `sudo -l` na conta fictícia `soclab`. |
+| 4–6 min | Execute **Assistida · IA simulada**. Mostre a regra 100501, a reputação sintética e **Ver triagem em JSON**. As duas rodadas reproduzem oito falhas de SSH, um login aceito e uma consulta `sudo -l` na conta fictícia `soclab`. |
 | 6–7 min | Antes de aprovar, mostre a sonda atacante em HTTP 204. Clique em **Aprovar bloqueio**. O atacante recebe HTTP 403, a sonda de controle continua em HTTP 204 e o ticket é registrado. Use o desbloqueio manual ou aguarde a expiração e a sonda HTTP 204. |
-| 7–8 min | Compare as medições, exporte o JSONL e mostre o **Explorador de logs** para demonstrar a investigação sobre uma base maior. |
+| 7–8 min | Clique em **Avaliar detector**, mostre FP, FN e os limites da amostra. Compare as medições e abra a trilha da rodada para mostrar quem aprovou, horário e evidências. |
 
 ## Investigar 205.000 eventos
 
@@ -52,10 +52,10 @@ A base mistura cenários com atividade sintética de SSH, DNS, HTTP, firewall e 
 
 ## Evidências e política
 
-- O SIEM registra ID, horário UTC do evento, IP de origem, conta, tipo, host e resultado da autenticação. A rodada assistida usa cinco ou mais falhas seguidas de login e consulta administrativa para a mesma origem, conta e host em até 120 segundos. A coleta descarta passos repetidos ou fora de ordem.
-- A inteligência de ameaças usa uma pontuação sintética. O mapeamento de teste associa as falhas e a conta local a T1110.001 e T1078.003. A consulta `sudo -l` indica interesse em permissões e permanece registrada como evidência de consulta. [T1110.001](https://attack.mitre.org/techniques/T1110/001/) · [T1078.003](https://attack.mitre.org/techniques/T1078/003/)
-- O SOAR registra modelo simulado, versão, prompt e resultado estruturado. A validação exige os IDs da evidência e o esquema esperado. Na rodada de falha, a ausência de triagem impede a aprovação e o bloqueio.
-- O operador fictício `analista-demo` pode registrar Alta, Média ou Baixa. O SOAR guarda os IDs escolhidos e a justificativa na auditoria. Média, Baixa e Alta sem evidência da sequência completa seguem para acompanhamento. Alta com a sequência completa habilita aprovação humana. A vítima aplica a expiração localmente, inclusive se o painel for fechado.
+- O SIEM registra ID, horário UTC do evento, IP de origem, conta, tipo, host e resultado da autenticação. A janela de 120 segundos limita as falhas. O protótipo usa limites independentes de 60 segundos da última falha qualificada até o login e de 60 segundos do login até a consulta de privilégios. A sequência é agrupada por origem, conta e host. A coleta descarta passos repetidos ou fora de ordem.
+- A inteligência de ameaças usa uma pontuação sintética no formato de referência do AbuseIPDB. O endereço privado do laboratório fica fora de consultas ao AbuseIPDB e ao VirusTotal. O mapeamento associa as falhas a T1110.001 e o possível abuso de conta local a T1078.003. `sudo -l` é uma consulta de permissões. T1068 exige evidência de exploração de uma vulnerabilidade. [AbuseIPDB](https://docs.abuseipdb.com/) · [VirusTotal](https://docs.virustotal.com/reference/ip-info) · [MITRE ATT&CK T1068](https://attack.mitre.org/techniques/T1068/)
+- A triagem automática recebe contagem de falhas, indicadores de login e consulta, reputação simulada e IDs de evidência. Textos brutos, IP, usuário e host ficam fora do prompt. O validador rejeita campos extras ou duplicados, IDs inventados, técnicas e recomendações fora da lista. O JSON auditado guarda origem, versão do modelo, prompt versionado, horário, entrada, validação e resultado. Saída inválida ou indisponibilidade impedem o bloqueio. O [README](README.md#triagem-com-um-modelo-local) mostra como ativar o Ollama opcional.
+- O operador fictício `analista-demo` pode registrar Alta, Média ou Baixa. Média, Baixa e Alta sem evidência da sequência completa seguem para acompanhamento. Alta com a sequência completa habilita aprovação humana. A vítima aplica o prazo de 45 s localmente. O painel mostra a expiração em UTC e vincula aprovação, bloqueio e reversão pelo campo `approval_id`. O evento de aprovação inclui autor, horário, ação, IP de origem, alvo e IDs das evidências.
 
 ## Métricas e exportação
 
@@ -66,9 +66,12 @@ Cada linha do JSONL é um objeto. Agrupe por `run` e filtre por `event` ou `vm`.
 | Detecção | Início da reprodução → identificação pelo analista ou pela regra |
 | Triagem | Identificação → triagem registrada |
 | Aprovação | Pedido de aprovação → decisão de aprovar |
-| Resposta | Identificação → bloqueio aplicado, incluindo a espera pelo analista |
+| Resposta | Identificação (início do tratamento) → bloqueio aplicado, incluindo a espera pelo analista |
+| MTTR | Média da resposta nas rodadas da sessão que tiveram bloqueio aplicado, separada por manual e assistido |
+| Automação elegível | Rodadas assistidas com triagem automática validada ÷ rodadas assistidas correlacionadas que chegaram à triagem. A contenção continua sujeita à aprovação |
+| FP e FN | Detector executado sobre oito cenários sintéticos rotulados. FPR = FP ÷ (FP + VN). FNR = FN ÷ (FN + VP) |
 
-O exemplo incluído vem de uma validação do fluxo em laboratório. Os tempos refletem a execução de teste, inclusive o intervalo dos cliques. Para calcular médias experimentais, repita as rodadas nas mesmas condições e separe os tempos de detecção, triagem e aprovação. Medir falsos positivos e negativos requer um conjunto rotulado com casos benignos e maliciosos.
+O exemplo incluído vem de uma validação do fluxo em laboratório. Os tempos refletem a execução de teste, inclusive o intervalo dos cliques. A avaliação rotulada inclui uma rotina autorizada que dispara a regra e abusos que a regra deixa passar. Esse conjunto pequeno mede o detector em cenários controlados. Ele deixa em aberto a precisão em produção, a qualidade da triagem do modelo real e o desempenho do analista humano.
 
 ## Imagens de inicialização
 

@@ -9,6 +9,7 @@
   <script defer src="lab/dashboard.js"></script>
   <script defer src="lab/log-worker.js"></script>
   <script defer src="lab/investigation.js"></script>
+  <script defer src="lab/validation.js"></script>
   <script defer src="lab/painel.js"></script>
 </head>
 <body>
@@ -30,7 +31,7 @@
   </svg>
   <div class="shell">
     <header class="topbar">
-      <a class="top-logo" href="#visao-geral" aria-label="Abrir visão geral"><img src="lab/assets/tcs-logo.webp" width="160" height="64" alt="Tata Consultancy Services"></a>
+      <a class="top-logo" href="#visao-geral" aria-label="Abrir visão geral"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg><span><strong>SOC TIER 1</strong><small>LABORATÓRIO</small></span></a>
       <div class="top-product"><strong>SOC</strong><span>Security Operations Center</span></div>
       <form id="global-search" class="global-search" role="search">
         <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
@@ -46,6 +47,7 @@
         <a href="#operacao" id="link-live"><svg class="icon" aria-hidden="true"><use href="#i-pulse"/></svg>Operação ao vivo</a>
         <a href="#investigar" id="link-investigation"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Investigar logs</a>
         <a href="#casos" id="link-cases"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>Casos e evidências</a>
+        <a href="#validacao" id="link-validation"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Método e auditoria</a>
       </nav>
       <div class="lab-status">
         <div class="lab-status-title"><span class="status-dot" aria-hidden="true"></span><strong id="lab-health">Laboratório em espera</strong><svg class="icon" aria-hidden="true"><use href="#i-pulse"/></svg></div>
@@ -102,23 +104,24 @@
     <div class="view-heading"><div><p class="eyebrow">SIMULAÇÃO CONTROLADA</p><h1>Operação ao vivo</h1><p>Compare a análise manual com o fluxo assistido. A contenção exige aprovação.</p></div><span class="environment-badge">4 MÁQUINAS VIRTUAIS</span></div>
 
     <section class="machines" aria-label="Máquinas virtuais">
-      <article class="machine" data-vm="manager"><div class="vm-top"><span>VM 01</span><span class="vm-state">Inicializando</span></div><h2>SIEM</h2><p>Papel do Wazuh Manager</p><code>10.77.0.10</code></article>
+          <article class="machine" data-vm="manager"><div class="vm-top"><span>VM 01</span><span class="vm-state">Inicializando</span></div><h2>SIEM</h2><p>Coletor Go · papel do Wazuh</p><code>10.77.0.10</code></article>
       <article class="machine" data-vm="victim"><div class="vm-top"><span>VM 02</span><span class="vm-state">Inicializando</span></div><h2>Endpoint</h2><p>Autenticação e contenção</p><code>10.77.0.20</code></article>
       <article class="machine" data-vm="attacker"><div class="vm-top"><span>VM 03</span><span class="vm-state">Inicializando</span></div><h2>Atacante</h2><p>Reprodução de autenticação</p><code>10.77.0.30</code></article>
-      <article class="machine" data-vm="soar"><div class="vm-top"><span>VM 04</span><span class="vm-state">Inicializando</span></div><h2>SOAR</h2><p>Triagem e playbook de resposta</p><code>10.77.0.40</code></article>
+          <article class="machine" data-vm="soar"><div class="vm-top"><span>VM 04</span><span class="vm-state">Inicializando</span></div><h2>SOAR</h2><p>Playbook Go · arquitetura n8n</p><code>10.77.0.40</code></article>
     </section>
 
     <section class="controls" aria-label="Executar cenário">
       <div class="actions">
         <button id="manual" type="button" disabled>1. Rodada manual</button>
-        <button id="auto" class="primary" type="button" disabled>2. Rodada assistida</button>
+        <button id="auto" class="primary" type="button" disabled>2. Assistida · IA simulada</button>
+        <button id="llm" class="primary" type="button" hidden disabled>Assistida · Ollama local</button>
         <button id="failure" type="button" disabled>Testar falha de triagem</button>
       </div>
       <p id="status" role="status">Inicializando as quatro VMs. Mantenha esta aba aberta.</p>
     </section>
 
     <section class="panel comparison" aria-labelledby="metrics-title">
-      <div class="panel-header"><div><p class="eyebrow">EXPERIMENTO CONTROLADO</p><h2 id="metrics-title">Métricas por rodada</h2></div><span class="pill">TEMPOS MEDIDOS</span></div>
+      <div class="panel-header"><div><p class="eyebrow">EXPERIMENTO CONTROLADO</p><h2 id="metrics-title">Métricas por rodada</h2></div><button id="benchmark" type="button" class="compact" disabled>Avaliar detector</button></div>
       <div class="table-scroll">
         <table>
           <thead><tr><th scope="col">Fluxo</th><th scope="col">Eventos brutos</th><th scope="col">Incidentes</th><th scope="col">Detecção</th><th scope="col">Triagem</th><th scope="col">Aprovação</th><th scope="col">Resposta</th></tr></thead>
@@ -128,7 +131,8 @@
           </tbody>
         </table>
       </div>
-      <p>Resposta medida da identificação até o bloqueio, incluindo o tempo de aprovação.</p>
+      <p>MTTR = média do tempo entre a identificação do incidente (início do tratamento) e a aplicação do bloqueio HTTP, incluindo a aprovação humana. Só entram rodadas com contenção aplicada. <a href="#validacao">Ver método e resultados</a></p>
+      <div class="metric-summary"><span id="mttr-manual">MTTR manual —</span><span id="mttr-auto">MTTR assistido —</span><span id="automation-rate">Automação elegível —</span></div>
     </section>
 
     <div class="operations">
@@ -162,18 +166,21 @@
           <button id="approve" class="compact primary" type="button" hidden>Aprovar bloqueio</button>
           <button id="reject" class="compact" type="button" hidden>Rejeitar</button>
           <button id="rollback" class="compact" type="button" hidden>Desbloquear agora</button>
+          <button id="view-triage" class="compact" type="button" hidden>Ver triagem em JSON</button>
+          <button id="view-audit" class="compact" type="button" hidden>Ver trilha da rodada</button>
         </div>
+        <p id="block-deadline" class="block-deadline" hidden></p>
         <form id="manual-triage" class="triage-form" hidden>
           <label>Severidade<select id="manual-severity" required><option value="">Selecione</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></label>
           <label>Justificativa<textarea id="manual-reason" rows="2" minlength="3" maxlength="300" required placeholder="O que os registros selecionados mostram?"></textarea></label>
           <button id="save-triage" class="compact primary" type="submit">Registrar triagem</button>
         </form>
         <ol class="steps">
-          <li id="detect"><span class="step-number">01</span><div><strong>Identificar</strong><p>5 ou mais falhas → login aceito → sudo -l em até 120 s.</p></div></li>
-          <li id="enrich"><span class="step-number">02</span><div><strong>Enriquecer</strong><p>Reputação sintética e técnicas MITRE ATT&amp;CK.</p></div></li>
-          <li id="triage"><span class="step-number">03</span><div><strong>Triar</strong><p>Resumo e recomendação de contenção simulados.</p></div></li>
+          <li id="detect"><span class="step-number">01</span><div><strong>Identificar</strong><p>≥5 falhas em 120 s. Depois, até 60 s para o login e outros 60 s para sudo -l.</p></div></li>
+          <li id="enrich"><span class="step-number">02</span><div><strong>Enriquecer</strong><p>AbuseIPDB simulado · VirusTotal não consultado · MITRE T1110.001 e T1078.003.</p></div></li>
+          <li id="triage"><span class="step-number">03</span><div><strong>Triar</strong><p>JSON validado. Fixture no navegador e Ollama opcional no VirtualBox.</p></div></li>
           <li id="approve-step"><span class="step-number">04</span><div><strong>Validar política e aprovar</strong><p>Somente a origem de teste é elegível. SIEM, endpoint e SOAR são protegidos.</p></div></li>
-          <li id="contain"><span class="step-number">05</span><div><strong>Conter e verificar</strong><p>O bloqueio temporário permite expiração ou desbloqueio antecipado.</p></div></li>
+          <li id="contain"><span class="step-number">05</span><div><strong>Conter e verificar</strong><p>Bloqueio HTTP de 45 s com expiração automática ou desbloqueio antecipado.</p></div></li>
           <li id="ticket"><span class="step-number">06</span><div><strong>Registrar e notificar</strong><p>Ticket local, notificação simulada e auditoria em JSONL.</p></div></li>
         </ol>
       </section>
@@ -182,7 +189,7 @@
 
     <section id="investigation-view" class="investigation" aria-labelledby="investigation-title" hidden>
       <div class="archive-heading">
-        <div><p class="eyebrow">TRIAGEM E EVIDÊNCIAS</p><h2 id="investigation-title">Explorador de logs</h2><p>Filtre eventos, confira a linha original e reúna evidências em um caso.</p></div>
+        <div><p class="eyebrow">RECURSO COMPLEMENTAR</p><h2 id="investigation-title">Explorador de logs</h2><p>Filtre eventos, confira a linha original e reúna evidências em um caso separado do playbook.</p></div>
         <div class="actions"><button id="load-corpus" class="primary" type="button">Carregar base de exemplo</button><button id="import-logs" type="button">Importar logs</button><input id="log-file" type="file" accept=".jsonl,.ndjson,.gz,application/x-ndjson,application/gzip" hidden></div>
       </div>
       <p id="load-state" class="dataset-state" role="status">Carregue a base sintética ou abra um arquivo JSONL.</p>
@@ -225,6 +232,40 @@
           <p id="case-storage" class="dataset-state" role="status">Casos locais do explorador são separados da contenção ao vivo.</p>
         </aside>
       </div>
+    </section>
+    <section id="validation-view" aria-labelledby="validation-title" hidden>
+      <div class="view-heading"><div><p class="eyebrow">GUIA · SEÇÕES 7 A 11 E 15</p><h1 id="validation-title">Método e auditoria</h1><p>Escopo do laboratório, resultados da avaliação e evidências das decisões.</p></div><span class="environment-badge">PROTÓTIPO ACADÊMICO</span></div>
+      <div class="validation-grid">
+        <section class="panel scope-panel"><div class="panel-header"><h2>O que roda no laboratório</h2></div>
+          <dl class="scope-list">
+            <div><dt>Quatro VMs Linux</dt><dd>Convidados Linux inicializados pelo v86 no navegador ou pelo VirtualBox no Windows. As VMs trocam mensagens na rede isolada; a autenticação e os eventos de SSH são reproduções sintéticas.</dd></div>
+            <div><dt>Wazuh e n8n</dt><dd>O coletor e o playbook em Go representam, respectivamente, Wazuh Manager/Agent e n8n. Os produtos de referência da seção 15 ainda precisam ser implantados e validados com eventos reais.</dd></div>
+            <div><dt>Contenção</dt><dd>O endpoint recusa a origem no serviço HTTP da demo. Wazuh Active Response ou firewall ficam para a implantação com agentes reais. A política protege SIEM, SOAR e endpoint e exige aprovação humana.</dd></div>
+            <div><dt>Threat intelligence</dt><dd>O resultado de reputação 92/100 é uma fixture no formato de referência do AbuseIPDB. O IP é privado e nenhuma consulta é enviada ao AbuseIPDB ou ao VirusTotal.</dd></div>
+          </dl>
+        </section>
+        <section class="panel scope-panel"><div class="panel-header"><h2>Correlação e triagem</h2></div>
+          <dl class="scope-list">
+            <div><dt>Janelas independentes</dt><dd>O guia usa 120 s para as falhas. Neste protótipo, o login deve ocorrer até 60 s após a última falha qualificada e a consulta até 60 s após o login, na mesma origem, conta e máquina.</dd></div>
+            <div><dt>MITRE ATT&amp;CK</dt><dd><a href="https://attack.mitre.org/techniques/T1110/001/" target="_blank" rel="noopener">T1110.001</a> para tentativa de adivinhar senha e <a href="https://attack.mitre.org/techniques/T1078/003/" target="_blank" rel="noopener">T1078.003</a> como hipótese de abuso de conta local. <code>sudo -l</code> consulta permissões. <a href="https://attack.mitre.org/techniques/T1068/" target="_blank" rel="noopener">T1068</a> exige evidência de exploração.</dd></div>
+            <div><dt>IA e validação</dt><dd>O modo padrão usa uma saída simulada. O Ollama opcional recebe apenas campos normalizados e IDs, sem logs brutos, IP, usuário ou host. O SOAR valida esquema, IDs, técnicas e ações recomendadas. Falha ou JSON inválido impede a contenção.</dd></div>
+            <div><dt id="llm-status">Modo padrão · fixture local</dt><dd>Modelo, versão, prompt, entrada, resultado e validação aparecem na trilha da rodada. A configuração do Ollama fica no README.</dd></div>
+          </dl>
+        </section>
+        <section class="panel scope-panel"><div class="panel-header"><h2>Avaliação do detector</h2><a href="#operacao">Executar na operação ↗</a></div>
+          <p id="benchmark-state" class="dataset-state" role="status">Aguardando execução na VM SIEM.</p>
+          <div class="metric-summary"><span id="benchmark-fp">Falsos positivos —</span><span id="benchmark-fn">Falsos negativos —</span><span id="benchmark-confusion">VP e VN —</span></div>
+          <div class="table-scroll"><table class="overview-table"><thead><tr><th scope="col">Cenário rotulado</th><th scope="col">Verdade</th><th scope="col">Detector</th><th scope="col">Resultado</th></tr></thead><tbody id="benchmark-cases"><tr><td colspan="4">Os cenários aparecem após a avaliação.</td></tr></tbody></table></div>
+          <p class="dataset-state">FPR = FP/(FP+VN). FNR = FN/(FN+VP). Amostra controlada do detector, sem extrapolação para produção ou para decisões humanas.</p>
+        </section>
+        <section class="panel scope-panel"><div class="panel-header"><h2>Trilha da rodada</h2><a href="logs/soc-demo.jsonl" download>JSONL de exemplo ↗</a></div>
+          <label>Rodada auditada<select id="audit-run"><option value="">Aguardando histórico</option></select></label>
+          <p id="audit-source" class="dataset-state" role="status">Selecione uma rodada para inspecionar os registros.</p>
+          <div class="table-scroll audit-scroll"><table class="overview-table"><thead><tr><th scope="col">Hora UTC</th><th scope="col">Ação / registro</th><th scope="col">Autor</th><th scope="col">Evidências</th></tr></thead><tbody id="audit-rows"><tr><td colspan="4">Nenhum registro selecionado.</td></tr></tbody></table></div>
+          <p class="dataset-state">A aprovação, o bloqueio e a reversão são vinculados pelo ID de aprovação. Clique em uma linha para abrir o JSON integral.</p>
+        </section>
+      </div>
+      <p class="validation-method">Automação elegível = rodadas assistidas com triagem automática validada ÷ rodadas assistidas com incidente correlacionado e tentativa de triagem. Aprovação e contenção ficam fora do numerador. Métricas calculadas na sessão de operação.</p>
     </section>
     <dialog id="log-detail" aria-labelledby="detail-title">
       <div class="panel-header"><div><p class="eyebrow">REGISTRO ORIGINAL</p><h2 id="detail-title">Detalhe do evento</h2></div><form method="dialog"><button type="submit" class="compact" aria-label="Fechar detalhes">Fechar</button></form></div>

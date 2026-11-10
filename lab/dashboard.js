@@ -161,12 +161,14 @@ globalThis.SocDashboard = (() => {
   for (const control of document.querySelectorAll('[data-severity-filter]')) {
     control.addEventListener('click', () => SocLogs.openSearch({ severity: control.dataset.severityFilter }));
   }
-  if (location.protocol !== 'file:') {
-    fetch('logs/soc-demo.jsonl').then((response) => response.ok ? response.text() : '').then((text) => {
-      for (const line of text.trim().split('\n')) if (line) applyAudit(sample, JSON.parse(line));
-      renderIncidents();
-    }).catch(() => renderIncidents());
-  } else renderIncidents();
+  const sampleRecords = location.protocol === 'file:' ? Promise.resolve([]) : fetch('logs/soc-demo.jsonl')
+    .then((response) => response.ok ? response.text() : '')
+    .then((text) => text.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line)))
+    .catch(() => []);
+  sampleRecords.then((events) => {
+    for (const event of events) applyAudit(sample, event);
+    renderIncidents();
+  });
 
-  return { archive, archiveState, machine, ingest };
+  return { archive, archiveState, machine, ingest, sampleRecords };
 })();

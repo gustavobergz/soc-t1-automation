@@ -3,6 +3,7 @@ const { createReadStream } = require('node:fs');
 const http = require('node:http');
 const net = require('node:net');
 const path = require('node:path');
+const ollama = require('./ollama.cjs');
 
 const host = '127.0.0.1';
 const port = 8771;
@@ -14,9 +15,9 @@ const journal = [];
 let sequence = 0;
 
 const commands = {
-  manager: /^manual-detect SOC-\d{3,24} SOC-\d{3,24}-\d{2,4}(?:,SOC-\d{3,24}-\d{2,4}){0,29}$/,
+  manager: /^(?:benchmark|manual-detect SOC-\d{3,24} SOC-\d{3,24}-\d{2,4}(?:,SOC-\d{3,24}-\d{2,4}){0,29})$/,
   victim: /^prepare SOC-\d{3,}$/,
-  attacker: /^(?:run SOC-\d{3,} (?:manual|auto|failure)|probe SOC-\d{3,} (?:pending|contained|released|denied|rejected|monitoring))$/,
+  attacker: /^(?:run SOC-\d{3,} (?:manual|auto|failure|llm)|probe SOC-\d{3,} (?:pending|contained|released|denied|rejected|monitoring))$/,
   soar: /^(?:manual-triage SOC-\d{3,24} (?:alta|media|baixa) [A-Za-z0-9_-]{4,1600}|(?:approve|reject|rollback) SOC-\d{3,24})$/,
 };
 const assets = new Map([
@@ -24,7 +25,7 @@ const assets = new Map([
   ['/lab/painel.js', ['lab/painel.js', 'text/javascript; charset=utf-8']],
   ['/lab/painel.css', ['lab/painel.css', 'text/css; charset=utf-8']],
   ['/lab/dashboard.js', ['lab/dashboard.js', 'text/javascript; charset=utf-8']],
-  ['/lab/assets/tcs-logo.webp', ['lab/assets/tcs-logo.webp', 'image/webp']],
+  ['/lab/validation.js', ['lab/validation.js', 'text/javascript; charset=utf-8']],
   ['/lab/investigation.js', ['lab/investigation.js', 'text/javascript; charset=utf-8']],
   ['/lab/log-worker.js', ['lab/log-worker.js', 'text/javascript; charset=utf-8']],
   ['/logs/soc-demo.jsonl', ['logs/soc-demo.jsonl', 'application/x-ndjson; charset=utf-8']],
@@ -65,6 +66,14 @@ function attach(role) {
           console.log(`VM ${role} online em ${event.ip}`);
         }
         publish(event);
+        if (role === 'soar' && event.event === 'soar.triage_requested' && /^SOC-\d{3,24}$/.test(event.run)) {
+          ollama.triage(event).then((result) => {
+            if (channel.ready && !socket.destroyed) {
+              const reply = Buffer.from(JSON.stringify(result)).toString('base64url');
+              socket.write(`llm-result ${event.run} ${reply}\n`);
+            }
+          });
+        }
       } catch (error) {
         console.error(`Evento serial inválido em ${role}: ${error.message}`);
       }
@@ -86,6 +95,10 @@ function reply(response, code) {
 
 async function handle(request, response) {
   if (request.headers.host !== `${host}:${port}`) return reply(response, 403);
+  if (request.method === 'GET' && request.url === '/api/capabilities') {
+    response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify({ ollama_model: ollama.model }));
+    return;
+  }
   if (request.method === 'GET' && request.url === '/api/events') {
     response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store' });
     response.write(': SOC Tier 1\n\n');

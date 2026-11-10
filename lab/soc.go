@@ -19,14 +19,17 @@ import (
 )
 
 const (
-	managerIP = "10.77.0.10"
-	victimIP  = "10.77.0.20"
-	attackIP  = "10.77.0.30"
-	soarIP    = "10.77.0.40"
-	account   = "soclab"
-	endpoint  = "endpoint-01"
-	threshold = 5
-	window    = 120 * time.Second
+	managerIP       = "10.77.0.10"
+	victimIP        = "10.77.0.20"
+	attackIP        = "10.77.0.30"
+	soarIP          = "10.77.0.40"
+	account         = "soclab"
+	endpoint        = "endpoint-01"
+	threshold       = 5
+	failureWindow   = 120 * time.Second
+	loginWindow     = 60 * time.Second
+	postLoginWindow = 60 * time.Second
+	maxEventAge     = 5 * time.Minute
 )
 
 type fields map[string]any
@@ -204,7 +207,7 @@ func (a *appliance) collect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !runID.MatchString(event.Run) || event.Step < 1 || event.ID != fmt.Sprintf("%s-%02d", event.Run, event.Step) ||
-		event.At.IsZero() || event.At.After(time.Now().Add(5*time.Second)) || time.Since(event.At) > window {
+		event.At.IsZero() || event.At.After(time.Now().Add(5*time.Second)) || time.Since(event.At) > maxEventAge {
 		http.Error(w, "identidade ou horario do evento invalido", http.StatusBadRequest)
 		return
 	}
@@ -215,7 +218,7 @@ func (a *appliance) collect(w http.ResponseWriter, r *http.Request) {
 func (a *appliance) collectSignal(event signal) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	key := strings.Join([]string{event.Run, event.Host, event.Source, event.User}, "/")
+	key := correlationKey(event)
 	state := a.cases[key]
 	if state == nil {
 		state = &caseState{}
@@ -235,25 +238,31 @@ func (a *appliance) collectSignal(event signal) {
 	}
 }
 
+func correlationKey(event signal) string {
+	return strings.Join([]string{event.Run, event.Host, event.Source, event.User}, "/")
+}
+
 func summarize(signals []signal) alert {
 	first := signals[0]
 	incident := alert{Run: first.Run, Incident: "INC-" + first.Run, Source: first.Source, User: first.User, Host: first.Host, Mode: first.Mode}
 	var failures []time.Time
-	accepted := false
+	var accepted time.Time
 	for _, event := range signals {
 		incident.Evidence = append(incident.Evidence, event.ID)
-		for len(failures) > 0 && event.At.Sub(failures[0]) > window {
-			failures = failures[1:]
-		}
 		switch event.Kind {
 		case "ssh.failed":
 			incident.Failures++
+			for len(failures) > 0 && event.At.Sub(failures[0]) > failureWindow {
+				failures = failures[1:]
+			}
 			failures = append(failures, event.At)
-			accepted = false
+			accepted = time.Time{}
 		case "ssh.accepted":
-			accepted = len(failures) >= threshold
+			if len(failures) >= threshold && event.At.Sub(failures[len(failures)-1]) <= loginWindow {
+				accepted = event.At
+			}
 		case "sudo.attempt":
-			incident.ChainComplete = incident.ChainComplete || (accepted && len(failures) >= threshold)
+			incident.ChainComplete = incident.ChainComplete || (!accepted.IsZero() && event.At.Sub(accepted) <= postLoginWindow)
 		}
 	}
 	return incident
@@ -288,7 +297,8 @@ func (a *appliance) dispatch(state *caseState, incident alert, event string) {
 		"username": incident.User, "host": incident.Host, "evidence_ids": incident.Evidence, "mode": incident.Mode, "chain_complete": incident.ChainComplete}
 	message := "Analista identificou o incidente a partir dos registros selecionados."
 	if event == "siem.correlated" {
-		detail["rule_id"], detail["window_seconds"] = 100501, int(window.Seconds())
+		detail["rule_id"], detail["window_seconds"] = 100501, int(failureWindow.Seconds())
+		detail["failure_window_seconds"], detail["login_window_seconds"], detail["post_login_window_seconds"] = int(failureWindow.Seconds()), int(loginWindow.Seconds()), int(postLoginWindow.Seconds())
 		message = "Identificada sequência de falhas de SSH, login aceito e consulta sudo -l."
 	}
 	a.emit(event, incident.Run, message, detail)
@@ -335,6 +345,10 @@ func (a *appliance) command(line string) {
 		a.ready()
 		return
 	}
+	if len(args) == 1 && args[0] == "benchmark" && a.role == "manager" {
+		a.evaluateDetector()
+		return
+	}
 	if len(args) < 2 || !runID.MatchString(args[1]) {
 		return
 	}
@@ -354,7 +368,7 @@ func (a *appliance) command(line string) {
 		a.emit("endpoint.prepared", run, "Serviço de demonstração liberado para a nova rodada.", nil)
 	case a.role == "attacker" && args[0] == "run" && len(args) == 3:
 		mode := args[2]
-		if mode != "manual" && mode != "auto" && mode != "failure" {
+		if mode != "manual" && mode != "auto" && mode != "failure" && mode != "llm" {
 			return
 		}
 		if err := a.runAttack(mode, run); err != nil {

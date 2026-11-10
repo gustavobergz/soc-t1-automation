@@ -47,14 +47,15 @@ globalThis.SocLogs = (() => {
   }
 
   function workspace() {
-    const routes = { '#operacao': 'live', '#investigar': 'investigation', '#casos': 'cases' };
+    const routes = { '#operacao': 'live', '#investigar': 'investigation', '#casos': 'cases', '#validacao': 'validation' };
     const view = routes[location.hash] || 'overview';
     const investigation = view === 'investigation' || view === 'cases';
     el('overview-view').hidden = view !== 'overview';
     el('live-view').hidden = view !== 'live';
     el('investigation-view').hidden = !investigation;
+    el('validation-view').hidden = view !== 'validation';
     el('investigation-view').classList.toggle('cases-view', view === 'cases');
-    for (const section of ['overview', 'live', 'investigation', 'cases']) {
+    for (const section of ['overview', 'live', 'investigation', 'cases', 'validation']) {
       const link = el(`link-${section}`);
       if (section === view) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
@@ -316,7 +317,7 @@ globalThis.SocLogs = (() => {
   selectCase(lastCase);
   workspace();
   function loadDefaultCorpus() {
-    if (location.protocol !== 'file:' && !worker && el('live-view').hidden) load();
+    if (location.protocol !== 'file:' && !worker && (!el('overview-view').hidden || !el('investigation-view').hidden)) load();
   }
   loadDefaultCorpus();
   window.addEventListener('hashchange', () => {
