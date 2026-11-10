@@ -23,6 +23,8 @@ const assets = new Map([
   ['/', ['DEMO SOC.html', 'text/html; charset=utf-8']],
   ['/lab/painel.js', ['lab/painel.js', 'text/javascript; charset=utf-8']],
   ['/lab/painel.css', ['lab/painel.css', 'text/css; charset=utf-8']],
+  ['/lab/dashboard.js', ['lab/dashboard.js', 'text/javascript; charset=utf-8']],
+  ['/lab/assets/tcs-logo.webp', ['lab/assets/tcs-logo.webp', 'image/webp']],
   ['/lab/investigation.js', ['lab/investigation.js', 'text/javascript; charset=utf-8']],
   ['/lab/log-worker.js', ['lab/log-worker.js', 'text/javascript; charset=utf-8']],
   ['/logs/soc-demo.jsonl', ['logs/soc-demo.jsonl', 'application/x-ndjson; charset=utf-8']],

@@ -67,6 +67,7 @@ function vmState(role, label, blocked = false) {
   card.querySelector('.vm-state').textContent = label;
   card.classList.toggle('ready', ready.has(role));
   card.classList.toggle('blocked', blocked);
+  globalThis.SocDashboard?.machine(role, label, ready.size, ready.has(role), blocked);
 }
 
 function setStep(id, message, done = true) {
@@ -246,6 +247,7 @@ function checkProbe(event) {
 
 function onEvent(event) {
   records.push(event);
+  globalThis.SocDashboard?.ingest(event);
   if (event.event === 'vm.ready' || event.event === 'vm.offline') {
     if (event.event === 'vm.ready') {
       ready.add(event.vm);

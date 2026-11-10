@@ -18,6 +18,7 @@ globalThis.SocLogs = (() => {
   let pages = 0;
   let requestId = 0;
   let currentCase;
+  let pendingFilters;
   const cases = new Map();
 
   function button(label, action, className = 'compact') {
@@ -46,12 +47,18 @@ globalThis.SocLogs = (() => {
   }
 
   function workspace() {
-    const investigation = location.hash === '#investigar' || (hosted && !location.hash);
-    el('live-view').hidden = investigation;
+    const routes = { '#operacao': 'live', '#investigar': 'investigation', '#casos': 'cases' };
+    const view = routes[location.hash] || 'overview';
+    const investigation = view === 'investigation' || view === 'cases';
+    el('overview-view').hidden = view !== 'overview';
+    el('live-view').hidden = view !== 'live';
     el('investigation-view').hidden = !investigation;
-    el('link-live').toggleAttribute('aria-current', !investigation);
-    el('link-investigation').toggleAttribute('aria-current', investigation);
-    el(investigation ? 'link-investigation' : 'link-live').setAttribute('aria-current', 'page');
+    el('investigation-view').classList.toggle('cases-view', view === 'cases');
+    for (const section of ['overview', 'live', 'investigation', 'cases']) {
+      const link = el(`link-${section}`);
+      if (section === view) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    }
   }
 
   function loadState(text, error = false) {
@@ -86,6 +93,7 @@ globalThis.SocLogs = (() => {
     el('clear-search').disabled = true;
     const source = file?.name || corpus;
     loadState(`Carregando ${source}…`);
+    globalThis.SocDashboard?.archiveState('Carregando base…');
     worker.postMessage({
       type: 'load', source, file, url: file ? null : new URL(`logs/${corpus}`, location.href).href,
       legacyUrl: !file && !hosted ? new URL(`logs/${corpus.slice(0, -3)}`, location.href).href : null,
@@ -99,12 +107,14 @@ globalThis.SocLogs = (() => {
         break;
       case 'error':
         loadState(data.message, true);
+        globalThis.SocDashboard?.archiveState('Base indisponível');
         el('result-count').textContent = 'Falha ao carregar';
         rows.replaceChildren();
         showEmpty('Abra outro arquivo JSONL para continuar.');
         break;
       case 'loaded':
         loaded = data.total;
+        globalThis.SocDashboard?.archive(data);
         if (data.legacyUrl) {
           el('download-corpus').href = data.legacyUrl;
           el('download-corpus').textContent = 'Base de 205 mil eventos (.jsonl)';
@@ -113,8 +123,7 @@ globalThis.SocLogs = (() => {
         el('search-type').replaceChildren(new Option('Todos', ''), ...data.types.map((type) => new Option(type, type)));
         el('apply-search').disabled = false;
         el('clear-search').disabled = false;
-        form.reset();
-        search(true);
+        applyFilters();
         break;
       case 'results':
         if (data.id !== requestId) return;
@@ -125,6 +134,22 @@ globalThis.SocLogs = (() => {
         pagination();
         break;
     }
+  }
+
+  function applyFilters() {
+    form.reset();
+    for (const [field, value] of Object.entries(pendingFilters || {})) {
+      form.elements.namedItem(field).value = value;
+    }
+    pendingFilters = undefined;
+    search(true);
+  }
+
+  function openSearch(filters) {
+    pendingFilters = filters;
+    location.hash = '#investigar';
+    if (loaded) applyFilters();
+    else if (location.protocol === 'file:') loadState('Carregue uma base de logs para aplicar a busca.');
   }
 
   function search(reset = false) {
@@ -290,13 +315,26 @@ globalThis.SocLogs = (() => {
   } catch { /* A new case is available when browser storage is unavailable. */ }
   selectCase(lastCase);
   workspace();
-  function loadHostedCorpus() {
-    if (hosted && !worker && !el('investigation-view').hidden) load();
+  function loadDefaultCorpus() {
+    if (location.protocol !== 'file:' && !worker && el('live-view').hidden) load();
   }
-  loadHostedCorpus();
+  loadDefaultCorpus();
   window.addEventListener('hashchange', () => {
     workspace();
-    loadHostedCorpus();
+    loadDefaultCorpus();
+    if (location.hash === '#casos') el('case-panel').focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  });
+  el('global-search').addEventListener('submit', (event) => {
+    event.preventDefault();
+    openSearch({ text: el('global-query').value.trim() });
+  });
+  document.addEventListener('keydown', (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !el('log-detail').open) {
+      event.preventDefault();
+      el('global-query').focus();
+      el('global-query').select();
+    }
   });
   el('load-corpus').addEventListener('click', () => {
     if (location.protocol === 'file:') {
@@ -325,5 +363,5 @@ globalThis.SocLogs = (() => {
       renderEvidence();
     });
   }
-  return { showDetails, severity };
+  return { showDetails, severity, openSearch };
 })();

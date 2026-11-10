@@ -6,6 +6,7 @@ Laboratório de SOC para investigar abuso de credenciais, correlacionar evidênc
 
 [**Abrir a demonstração no navegador**](https://gustavobergz.github.io/soc-t1-automation/)
 
+- **Visão geral** reúne os indicadores da base carregada, os incidentes da demonstração e a topologia da rede isolada. Use **Ctrl+K** para buscar em qualquer área.
 - **Investigar logs** abre o explorador com 205.000 eventos sintéticos. Filtre pelo IP `198.51.100.27` para encontrar oito falhas de autenticação, um login aceito e uma consulta de privilégios. Abra o JSON original, selecione as evidências e exporte o caso.
 - **Operação ao vivo** inicia quatro VMs Linux isoladas no navegador. A rodada manual permite escolher as evidências, a severidade e a justificativa. A rodada assistida demonstra a correlação, a aprovação humana, o bloqueio por 45 segundos e a opção de desbloquear.
 

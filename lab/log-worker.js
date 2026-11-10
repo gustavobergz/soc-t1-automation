@@ -25,6 +25,28 @@ function archiveWorker() {
     };
   }
 
+  function summarize(rows) {
+    const levels = { alta: 0, media: 0, baixa: 0 };
+    const buckets = { total: Array(24).fill(0), alta: Array(24).fill(0), media: Array(24).fill(0) };
+    const signals = new Map();
+    const first = rows.find((row) => Number.isFinite(row.time))?.time;
+    const last = rows.findLast((row) => Number.isFinite(row.time))?.time;
+    const span = Math.max(1, last - first + 1);
+    const recent = [];
+    for (const row of rows) {
+      const bucket = Math.min(23, Math.floor((row.time - first) * 24 / span));
+      if (Number.isFinite(bucket)) buckets.total[bucket]++;
+      if (!Object.hasOwn(levels, row.severity)) continue;
+      levels[row.severity]++;
+      if (buckets[row.severity] && Number.isFinite(bucket)) buckets[row.severity][bucket]++;
+      signals.set(row.type, (signals.get(row.type) || 0) + 1);
+    }
+    for (let index = rows.length - 1; index >= 0 && recent.length < 6; index--) {
+      if (Object.hasOwn(levels, rows[index].severity)) recent.push(rows[index]);
+    }
+    return { levels, buckets, recent, signals: [...signals].sort((a, b) => b[1] - a[1]).slice(0, 4) };
+  }
+
   async function load({ url, file, source, legacyUrl }) {
     const token = ++generation;
     records = [];
@@ -82,7 +104,7 @@ function archiveWorker() {
       if (loaded.length === 0) throw new Error('Nenhum objeto JSON válido encontrado. Use um objeto por linha.');
       loaded.sort((a, b) => (a.time || 0) - (b.time || 0));
       records = loaded;
-      postMessage({ type: 'loaded', total: records.length, invalid, types: [...types].sort(), source, legacyUrl: legacy || null });
+      postMessage({ type: 'loaded', total: records.length, invalid, types: [...types].sort(), source, legacyUrl: legacy || null, summary: summarize(records) });
     } catch (error) {
       if (token === generation) postMessage({ type: 'error', message: error.message });
     }
