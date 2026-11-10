@@ -265,6 +265,27 @@ dialog pre { padding: 10px; background: #081323; border: 1px solid var(--border)
 .audit-scroll table { white-space: normal; }
 .audit-scroll td:first-child { white-space: nowrap; }
 .audit-scroll td:nth-child(3) { overflow-wrap: anywhere; }
+.analysis-source { display: flex; align-items: end; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 13px; }
+.analysis-source label { flex: 0 1 355px; }
+.analysis-source p { width: 100%; margin: 0; }
+.analysis-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 13px; align-items: start; }
+.memory-panel { grid-column: 1 / -1; }
+.analysis-lead { margin-bottom: 9px; color: #c9ddf8; font-size: .83rem; line-height: 1.5; }
+.analysis-list { display: grid; gap: 8px; margin: 0 0 11px; padding-left: 17px; color: var(--muted); font-size: .79rem; line-height: 1.45; }
+.analysis-list li::marker { color: var(--accent); }
+.memory-matches strong, .memory-matches small { display: block; }
+.memory-matches strong { color: #d6e7fb; font-weight: 600; }
+.memory-matches small { margin-top: 2px; font-size: .72rem; }
+.memory-review, .replay-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 7px; }
+.memory-review label { width: min(100%, 220px); }
+.replay-controls select { padding: 4px; }
+.replay-panel input[type=range] { border: 0; background: transparent; padding: 0; margin: 10px 0 4px; accent-color: var(--accent); }
+.replay-events { max-height: 276px; min-height: 132px; overflow-y: auto; list-style: none; margin: 0; padding: 0; }
+.replay-events li { display: flex; gap: 8px; align-items: baseline; padding: 6px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: .77rem; line-height: 1.5; }
+.replay-events li.replay-current { background: #102c4a; }
+.replay-events time { flex: none; font: .68rem var(--mono); }
+.replay-events li div { min-width: 0; overflow-wrap: anywhere; }
+.replay-events .link-button { display: block; }
 
 @media (max-width: 1200px) {
   :root { --sidebar-width: 190px; }
@@ -277,7 +298,7 @@ dialog pre { padding: 10px; background: #081323; border: 1px solid var(--border)
 @media (max-width: 1000px) {
   .topbar { grid-template-columns: 160px 115px minmax(135px, 1fr) auto; }
   .top-session > div { display: none; }
-  .overview-grid, .operations, .investigation-grid, .validation-grid { grid-template-columns: 1fr; }
+  .overview-grid, .operations, .investigation-grid, .validation-grid, .analysis-grid { grid-template-columns: 1fr; }
   .case-panel { position: static; }
   .cases-view .case-panel { grid-row: 1; }
   .recent-incidents { grid-row: 3; }

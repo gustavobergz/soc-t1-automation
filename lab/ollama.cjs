@@ -41,6 +41,29 @@ async function call(path, signal, body) {
   return response.json();
 }
 
+async function challenge(event, input, output, signal) {
+  if (event.challenge_prompt_version !== 'soc-challenger-1' || typeof event.challenge_prompt !== 'string' || event.challenge_prompt.length > 1000) return '';
+  try {
+    const initial = JSON.parse(output);
+    if (!['alta', 'media', 'baixa'].includes(initial?.severity) || !['possivel_abuso_credenciais', 'inconclusivo'].includes(initial.threat_type)) return '';
+    const properties = {
+      verdict: { type: 'string', enum: ['contradiction', 'missing_evidence', 'no_clear_contradiction'] },
+      evidence_ids: { type: 'array', items: { type: 'string', enum: input.evidence_ids }, maxItems: input.evidence_ids.length },
+      reason: { type: 'string', minLength: 1, maxLength: 300 },
+    };
+    const response = await call('/api/chat', signal, {
+      model, stream: false, options: { temperature: 0, num_predict: 420 },
+      format: { type: 'object', properties, required: Object.keys(properties), additionalProperties: false },
+      messages: [{ role: 'system', content: event.challenge_prompt },
+        { role: 'user', content: JSON.stringify({ ...input, initial_severity: initial.severity, initial_threat_type: initial.threat_type }) }],
+    });
+    const review = response.message?.content;
+    if (response.done === true && response.done_reason !== 'length' && response.model === model && typeof review === 'string' &&
+        Buffer.byteLength(review) <= 2400 && !response.message?.tool_calls?.length) return review;
+  } catch { /* The verified first output can still receive the local rule review. */ }
+  return '';
+}
+
 async function triage(event) {
   const audit = { model: model || '' };
   if (!model) return { ...audit, error: 'llm_unavailable' };
@@ -65,7 +88,10 @@ async function triage(event) {
     if (response.done !== true || response.done_reason === 'length' || response.model !== model || typeof output !== 'string' || Buffer.byteLength(output) > 6000 || response.message?.tool_calls?.length) {
       return { ...audit, error: 'invalid_provider_reply' };
     }
-    return { ...audit, output };
+    const review = await challenge(event, input, output, signal);
+    const reply = { ...audit, output, challenge: review };
+    if (Buffer.byteLength(JSON.stringify(reply)) > 9000) delete reply.challenge;
+    return reply;
   } catch {
     return { ...audit, error: 'llm_unavailable' };
   }

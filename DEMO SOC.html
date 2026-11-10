@@ -11,6 +11,8 @@
   <script defer src="lab/log-worker.js"></script>
   <script defer src="lab/investigation.js"></script>
   <script defer src="lab/validation.js"></script>
+  <script defer src="lab/review.js"></script>
+  <script defer src="lab/analysis.js"></script>
   <script defer src="lab/painel.js"></script>
 </head>
 <body>
@@ -48,6 +50,7 @@
         <a href="#operacao" id="link-live"><svg class="icon" aria-hidden="true"><use href="#i-pulse"/></svg>Operação ao vivo</a>
         <a href="#investigar" id="link-investigation"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Investigar logs</a>
         <a href="#casos" id="link-cases"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>Casos e evidências</a>
+        <a href="#analise" id="link-analysis"><svg class="icon" aria-hidden="true"><use href="#i-workflow"/></svg>Análise de incidentes</a>
         <a href="#validacao" id="link-validation"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Método e auditoria</a>
       </nav>
       <div class="lab-status">
@@ -169,7 +172,9 @@
           <button id="rollback" class="compact" type="button" hidden>Desbloquear agora</button>
           <button id="view-triage" class="compact" type="button" hidden>Ver triagem em JSON</button>
           <button id="view-audit" class="compact" type="button" hidden>Ver trilha da rodada</button>
+          <button id="view-analysis" class="compact" type="button" hidden>Revisar incidente</button>
         </div>
+        <p id="review-summary" class="block-deadline" hidden></p>
         <p id="block-deadline" class="block-deadline" hidden></p>
         <form id="manual-triage" class="triage-form" hidden>
           <label>Severidade<select id="manual-severity" required><option value="">Selecione</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></label>
@@ -226,12 +231,53 @@
           <label>Casos deste navegador<select id="case-list"><option value="">Caso atual</option></select></label>
           <label>Título<input id="case-title" placeholder="Ex.: autenticação em financeiro-07" maxlength="120"></label>
           <div class="case-fields"><label>Severidade<select id="case-severity"><option value="">A classificar</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></label><label>Status<select id="case-status"><option value="investigando">Em investigação</option><option value="encerrado">Encerrado</option></select></label></div>
+          <label id="case-resolution-field" hidden>Conclusão revisada<select id="case-resolution"><option value="">Selecione</option><option value="confirmado">Incidente confirmado</option><option value="falso_positivo">Falso positivo</option><option value="inconclusivo">Inconclusivo</option></select></label>
           <label>Justificativa / notas<textarea id="case-notes" rows="3" maxlength="2000" placeholder="O que liga estes eventos ao caso?"></textarea></label>
           <h3 id="case-evidence-count">0 evidências</h3>
           <ul id="case-evidence" class="case-evidence" aria-label="Registros marcados"></ul>
           <button id="export-case" type="button" class="compact" disabled>Exportar caso JSON</button>
+          <button id="case-analysis" type="button" class="compact" disabled>Analisar evidências</button>
           <p id="case-storage" class="dataset-state" role="status">Casos locais do explorador são separados da contenção ao vivo.</p>
         </aside>
+      </div>
+    </section>
+    <section id="analysis-view" aria-labelledby="analysis-title" hidden>
+      <div class="view-heading"><div><p class="eyebrow">REVISÃO DEFENSIVA</p><h1 id="analysis-title">Análise de incidentes</h1><p>Reproduza o histórico, confronte a triagem e simule o impacto antes de decidir.</p></div><span class="environment-badge">EVIDÊNCIAS DA RODADA</span></div>
+      <div class="panel analysis-source">
+        <label>Rodada<select id="analysis-run"><option value="">Aguardando histórico</option></select></label>
+        <button id="analysis-import" type="button" class="compact">Importar trilha JSONL</button><input id="analysis-file" type="file" accept=".jsonl,.ndjson" hidden>
+        <p id="analysis-status" class="dataset-state" role="status">Use uma rodada da sessão ou a amostra do laboratório.</p>
+      </div>
+      <div class="analysis-grid">
+        <section class="panel replay-panel" aria-labelledby="replay-title">
+          <div class="panel-header"><div><p class="eyebrow">ATTACK REPLAY</p><h2 id="replay-title">Linha do tempo</h2></div><span id="replay-position" class="pill">0 / 0</span></div>
+          <div class="replay-controls"><button id="replay-play" class="primary compact" type="button" disabled>Reproduzir</button><button id="replay-prev" class="compact" type="button" disabled>Anterior</button><button id="replay-next" class="compact" type="button" disabled>Próximo</button><label>Velocidade<select id="replay-speed"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label></div>
+          <input id="replay-seek" type="range" min="0" max="0" value="0" aria-label="Posição da reprodução" disabled>
+          <ol id="replay-events" class="replay-events"><li class="overview-empty">Selecione uma rodada para reproduzir os eventos registrados.</li></ol>
+        </section>
+        <section class="panel analysis-card" aria-labelledby="challenger-title">
+          <div class="panel-header"><div><p class="eyebrow">FALSE POSITIVE CHALLENGER</p><h2 id="challenger-title">Contraprovas</h2></div><span id="challenge-provider" class="pill">REGRAS LOCAIS</span></div>
+          <p id="challenge-verdict" class="analysis-lead">Aguardando uma rodada.</p>
+          <ul id="challenge-items" class="analysis-list"></ul>
+          <button id="challenge-json" class="compact" type="button" hidden>Ver revisão em JSON</button>
+        </section>
+        <section class="panel analysis-card" aria-labelledby="gap-title">
+          <div class="panel-header"><div><p class="eyebrow">EVIDENCE GAP DETECTOR</p><h2 id="gap-title">O que falta investigar</h2></div></div>
+          <ul id="gap-items" class="analysis-list"><li class="overview-empty">Aguardando uma rodada.</li></ul>
+        </section>
+        <section class="panel analysis-card" aria-labelledby="shadow-title">
+          <div class="panel-header"><div><p class="eyebrow">SHADOW MODE</p><h2 id="shadow-title">Impacto previsto</h2></div><button id="shadow-test" class="compact" type="button" disabled>Simular impacto</button></div>
+          <p id="shadow-result" class="analysis-lead" role="status">Selecione uma rodada e simule o efeito no serviço de teste.</p>
+          <ul id="shadow-items" class="analysis-list"></ul>
+          <button id="shadow-json" class="compact" type="button" hidden>Ver simulação em JSON</button>
+        </section>
+        <section class="panel analysis-card memory-panel" aria-labelledby="memory-title">
+          <div class="panel-header"><div><p class="eyebrow">SOC MEMORY</p><h2 id="memory-title">Casos semelhantes</h2></div><span class="pill">MEMÓRIA DO NAVEGADOR</span></div>
+          <p id="memory-summary" class="analysis-lead">Selecione uma rodada para consultar as resoluções.</p>
+          <ol id="memory-matches" class="analysis-list memory-matches"></ol>
+          <form id="memory-review" class="memory-review" hidden><label>Conclusão revisada<select id="memory-resolution" required><option value="">Selecione</option><option value="confirmado">Incidente confirmado</option><option value="falso_positivo">Falso positivo</option><option value="inconclusivo">Inconclusivo</option></select></label><button type="submit" class="compact primary">Salvar na memória</button></form>
+          <p id="memory-status" class="dataset-state" role="status">As classificações revisadas são armazenadas neste navegador.</p>
+        </section>
       </div>
     </section>
     <section id="validation-view" aria-labelledby="validation-title" hidden>

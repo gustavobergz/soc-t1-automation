@@ -147,6 +147,12 @@ func (a *appliance) requestApproval(job *workflow) {
 		return
 	}
 	job.phase = "pending"
+	a.emit("soar.shadow_preview", incident.Run, "Simulação de impacto registrada antes do pedido de aprovação.", fields{
+		"incident": incident.Incident, "source_ip": incident.Source, "target_ip": victimIP, "action": "http_block",
+		"scope": "serviço HTTP da vítima", "ttl_seconds": int(blockTTL.Seconds()), "applied": false,
+		"predicted_source_status": http.StatusForbidden, "predicted_control_status": http.StatusNoContent,
+		"protected_ips": protectedIPs, "evidence_ids": incident.Evidence,
+	})
 	a.emit("soar.approval_requested", incident.Run, "Política validada. Contenção aguarda decisão do analista.", fields{
 		"incident": incident.Incident, "source_ip": incident.Source, "protected_ips": protectedIPs,
 		"ttl_seconds": int(blockTTL.Seconds()), "evidence_ids": incident.Evidence, "approval_id": approvalID(incident.Run),

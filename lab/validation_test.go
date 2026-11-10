@@ -17,6 +17,23 @@ func TestCorrelationEvaluation(t *testing.T) {
 	}
 }
 
+func TestChallengeKeepsEvidenceBounded(t *testing.T) {
+	incident := summarize(scenarios[0].replay())
+	valid := []byte(`{"verdict":"missing_evidence","evidence_ids":["SOC-001-01"],"reason":"Verificar manutenção."}`)
+	if _, ok := validateChallenge(valid, incident); !ok {
+		t.Fatal("valid advisory review rejected")
+	}
+	for _, invalid := range []string{
+		strings.Replace(string(valid), "SOC-001-01", "SOC-999-01", 1),
+		`{"verdict":"contradiction","evidence_ids":[],"reason":"Verificar","action":"approve"}`,
+		`{"verdict":"contradiction","evidence_ids":["SOC-001-01","SOC-001-01"],"reason":"Verificar"}`,
+	} {
+		if _, ok := validateChallenge([]byte(invalid), incident); ok {
+			t.Fatal("invalid advisory review accepted")
+		}
+	}
+}
+
 func TestTriageRejectsUnexpectedData(t *testing.T) {
 	signals := scenarios[0].replay()
 	for index := range signals {

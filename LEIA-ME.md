@@ -57,6 +57,14 @@ A base mistura cenários com atividade sintética de SSH, DNS, HTTP, firewall e 
 - A triagem automática recebe contagem de falhas, indicadores de login e consulta, reputação simulada e IDs de evidência. Textos brutos, IP, usuário e host ficam fora do prompt. O validador rejeita campos extras ou duplicados, IDs inventados, técnicas e recomendações fora da lista. O JSON auditado guarda origem, versão do modelo, prompt versionado, horário, entrada, validação e resultado. Saída inválida ou indisponibilidade impedem o bloqueio. O [README](README.md#triagem-com-um-modelo-local) mostra como ativar o Ollama opcional.
 - O operador fictício `analista-demo` pode registrar Alta, Média ou Baixa. Média, Baixa e Alta sem evidência da sequência completa seguem para acompanhamento. Alta com a sequência completa habilita aprovação humana. A vítima aplica o prazo de 45 s localmente. O painel mostra a expiração em UTC e vincula aprovação, bloqueio e reversão pelo campo `approval_id`. O evento de aprovação inclui autor, horário, ação, IP de origem, alvo e IDs das evidências.
 
+## Revisão antes da decisão
+
+Em **Operação ao vivo**, execute **Assistida · IA simulada** e abra **Revisar incidente** quando a rodada pedir aprovação. O **Attack Replay** lê os registros existentes. Use reprodução, pausa, avanço ou busca de posição para acompanhar os horários UTC. O **Evidence Gap Detector** aponta, por exemplo, a falta de telemetria após `sudo -l` ou de um registro de mudança autorizada.
+
+O **False Positive Challenger** procura contraprovas com regras locais. Na opção Ollama, a revisão pode incorporar uma segunda saída validada, usando apenas dados normalizados e os valores da classificação inicial. O **Shadow Mode** registra o HTTP 403 previsto para a origem e o HTTP 204 previsto para o controle, sem tocar no serviço. O playbook registra a previsão antes de emitir o pedido de aprovação. **Simular impacto** permite repetir a análise; nas rodadas da sessão, a previsão também entra no JSONL exportado.
+
+O **SOC Memory** compara a ordem dos eventos, o host, a conta e as técnicas. Encerrar uma investigação com uma conclusão revisada ou salvar a conclusão de uma rodada alimenta a memória neste navegador. Os exemplos fictícios aparecem identificados enquanto não houver resoluções revisadas semelhantes. A memória sugere o que conferir e não altera a classificação ou a aprovação.
+
 ## Métricas e exportação
 
 Cada linha do JSONL é um objeto. Agrupe por `run` e filtre por `event` ou `vm`. O painel exibe os eventos pela ordem de recebimento e preserva o horário UTC da VM. Em `panel.metrics`, os valores são inteiros em milissegundos ou `null` quando a etapa não ocorreu. A tabela usa o relógio monotônico do painel para manter a mesma referência entre VMs.

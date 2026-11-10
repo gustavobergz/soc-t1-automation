@@ -10,7 +10,7 @@ globalThis.SocLogs = (() => {
   const storageKey = 'soc-tier1-cases-v1';
   const form = el('search-logs');
   const rows = el('archive-rows');
-  const caseInputs = { title: 'case-title', severity: 'case-severity', status: 'case-status', notes: 'case-notes' };
+  const caseInputs = { title: 'case-title', severity: 'case-severity', status: 'case-status', resolution: 'case-resolution', notes: 'case-notes' };
   const checkboxes = new Map();
   let worker;
   let loaded = 0;
@@ -47,15 +47,16 @@ globalThis.SocLogs = (() => {
   }
 
   function workspace() {
-    const routes = { '#operacao': 'live', '#investigar': 'investigation', '#casos': 'cases', '#validacao': 'validation' };
+    const routes = { '#operacao': 'live', '#investigar': 'investigation', '#casos': 'cases', '#validacao': 'validation', '#analise': 'analysis' };
     const view = routes[location.hash] || 'overview';
     const investigation = view === 'investigation' || view === 'cases';
     el('overview-view').hidden = view !== 'overview';
     el('live-view').hidden = view !== 'live';
     el('investigation-view').hidden = !investigation;
     el('validation-view').hidden = view !== 'validation';
+    el('analysis-view').hidden = view !== 'analysis';
     el('investigation-view').classList.toggle('cases-view', view === 'cases');
-    for (const section of ['overview', 'live', 'investigation', 'cases', 'validation']) {
+    for (const section of ['overview', 'live', 'investigation', 'cases', 'validation', 'analysis']) {
       const link = el(`link-${section}`);
       if (section === view) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
@@ -247,7 +248,7 @@ globalThis.SocLogs = (() => {
 
   function selectCase(item) {
     currentCase = item || { id: crypto.randomUUID(), title: '', severity: '', status: 'investigando', notes: '', evidence: {} };
-    for (const [key, id] of Object.entries(caseInputs)) el(id).value = currentCase[key];
+    for (const [key, id] of Object.entries(caseInputs)) el(id).value = currentCase[key] || '';
     el('case-storage').textContent = item ? 'Caso local aberto.' : 'Marque um registro para iniciar um caso local.';
     showCaseList();
     renderEvidence();
@@ -284,6 +285,8 @@ globalThis.SocLogs = (() => {
     const evidence = Object.values(currentCase.evidence);
     el('case-evidence-count').textContent = `${evidence.length} ${evidence.length === 1 ? 'evidência' : 'evidências'}`;
     el('export-case').disabled = !cases.has(currentCase.id);
+    el('case-analysis').disabled = !evidence.length;
+    el('case-resolution-field').hidden = currentCase.status !== 'encerrado';
     list.replaceChildren();
     for (const item of evidence) {
       const row = document.createElement('li');
@@ -357,6 +360,7 @@ globalThis.SocLogs = (() => {
   el('new-case').addEventListener('click', () => { selectCase(); el('case-title').focus(); });
   el('case-list').addEventListener('change', () => selectCase(cases.get(el('case-list').value)));
   el('export-case').addEventListener('click', exportCase);
+  el('case-analysis').addEventListener('click', () => globalThis.SocAnalysis?.openCase(currentCase.id, currentCase.title, Object.values(currentCase.evidence).map((row) => row.raw)));
   for (const [key, id] of Object.entries(caseInputs)) {
     el(id).addEventListener('change', () => {
       currentCase[key] = el(id).value.trim();
@@ -364,5 +368,12 @@ globalThis.SocLogs = (() => {
       renderEvidence();
     });
   }
-  return { showDetails, severity, openSearch };
+  function reviewedCases() {
+    return [...cases.values()].filter((item) => item.status === 'encerrado' && item.resolution).map((item) => ({
+      id: `caso:${item.id}`, title: item.title || 'Caso sem título', resolution: item.resolution,
+      entries: Object.values(item.evidence).map((row) => row.raw), severity: item.severity,
+    }));
+  }
+
+  return { showDetails, severity, openSearch, reviewedCases };
 })();

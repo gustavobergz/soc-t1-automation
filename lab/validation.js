@@ -8,6 +8,7 @@ globalThis.SocValidation = (() => {
     'siem.correlated': 'Correlação', 'siem.manual_detected': 'Identificação manual', 'soar.enriched': 'Enriquecimento',
     'soar.triage_requested': 'Solicitação ao Ollama', 'soar.triaged': 'Triagem automática validada', 'soar.triage_failed': 'Triagem rejeitada',
     'soar.manual_triaged': 'Triagem manual', 'soar.approval_requested': 'Pedido de aprovação', 'soar.approval_granted': 'Aprovação concedida',
+    'soar.challenged': 'Contraprova consultiva', 'soar.shadow_preview': 'Impacto previsto pelo playbook', 'panel.shadow_preview': 'Simulação no painel',
     'soar.approval_rejected': 'Aprovação rejeitada', 'soar.policy_denied': 'Política impediu a ação', 'soar.monitor_only': 'Acompanhamento',
     'endpoint.block_applied': 'Bloqueio HTTP aplicado', 'soar.rollback_requested': 'Desbloqueio solicitado', 'endpoint.block_released': 'Origem liberada',
   };

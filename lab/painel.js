@@ -40,6 +40,7 @@ function updateActions() {
   $('save-triage').disabled = !online;
   $('view-triage').hidden = !current?.triageAudit;
   $('view-audit').hidden = !current?.auditAvailable;
+  $('view-analysis').hidden = !current?.auditAvailable;
   updateEvidence();
   $('export').disabled = records.length === 0;
 }
@@ -268,6 +269,7 @@ function checkProbe(event) {
 
 function onEvent(event) {
   records.push(event);
+  globalThis.SocAnalysis?.ingest(event);
   globalThis.SocDashboard?.ingest(event);
   globalThis.SocValidation?.ingest(event);
   if (event.event === 'vm.ready' || event.event === 'vm.offline') {
@@ -368,6 +370,12 @@ function onEvent(event) {
       current.marks.pending = now;
       probe('pending');
       break;
+    case 'soar.shadow_preview': {
+      const summary = globalThis.SocAnalysis?.summary(event.run);
+      $('review-summary').hidden = false;
+      $('review-summary').textContent = `Simulação registrada · HTTP ${event.predicted_source_status} previsto por ${event.ttl_seconds} s · ${summary || 'consulte a revisão'}.`;
+      break;
+    }
     case 'soar.approval_granted':
       current.marks.approved = now;
       setStep('approve-step', `${event.actor} aprovou às ${utcTime(event.timestamp)} com ${event.evidence_ids.length} evidências.`);
@@ -438,6 +446,7 @@ function run(mode) {
   $('severity').className = 'pill';
   $('manual-triage').reset();
   $('block-deadline').hidden = true;
+  $('review-summary').hidden = true;
   for (const step of steps) setStep(step, defaults[step], false);
   selectFilter(mode === 'manual' ? 'manager' : 'all');
   status(`${current.id} · Preparando a vítima para a rodada.`);
@@ -450,6 +459,16 @@ function run(mode) {
 for (const id of ['manual', 'auto', 'failure', 'llm']) $(id).addEventListener('click', () => run(id));
 $('view-triage').addEventListener('click', () => SocLogs.showDetails(current.triageAudit));
 $('view-audit').addEventListener('click', () => globalThis.SocValidation?.openAudit(current.id));
+$('view-analysis').addEventListener('click', () => globalThis.SocAnalysis?.open(current.id));
+document.addEventListener('soc:shadow-preview', ({ detail }) => {
+  if (detail.run === current?.id) {
+    const audit = { ...detail, vm: 'panel', message: 'Analista simulou o impacto no painel.' };
+    records.push(audit);
+    globalThis.SocAnalysis?.ingest(audit);
+    globalThis.SocValidation?.ingest(audit);
+    showEvents();
+  }
+});
 $('benchmark').addEventListener('click', async () => {
   try {
     await lab.command('manager', 'benchmark');

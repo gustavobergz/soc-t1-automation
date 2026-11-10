@@ -10,6 +10,7 @@ Laboratório de SOC para investigar abuso de credenciais, correlacionar evidênc
 - **Investigar logs** abre o explorador com 205.000 eventos sintéticos. Filtre pelo IP `198.51.100.27` para encontrar oito falhas de autenticação, um login aceito e uma consulta de privilégios. Abra o JSON original, selecione as evidências e exporte o caso.
 - **Operação ao vivo** inicia quatro VMs Linux isoladas no navegador. A rodada manual permite escolher as evidências, a severidade e a justificativa. A rodada assistida demonstra a correlação, a aprovação humana, o bloqueio por 45 segundos e a opção de desbloquear.
 - **Método e auditoria** mostra o escopo em relação ao guia, a avaliação reproduzível do detector e o JSON de triagem, aprovação, contenção e reversão.
+- **Análise de incidentes** reúne as cinco prioridades. Reproduza a trilha em ordem UTC, consulte contraprovas e lacunas, compare casos encerrados e simule o impacto da contenção HTTP. Abra uma rodada da sessão, a trilha de exemplo ou um arquivo JSONL de auditoria.
 
 ## Rodar localmente
 
@@ -29,6 +30,8 @@ $env:SOC_OLLAMA_MODEL = 'qwen2.5:3b'
 ```
 
 Se o iniciador do VirtualBox já estiver aberto, feche-o antes de iniciar com essa configuração. Selecione **Assistida · Ollama local**. O conector usa `127.0.0.1:11434`, exige uma tag local sem variante de nuvem e envia apenas o incidente normalizado. Abra **Ver triagem em JSON** para inspecionar modelo, digest, versão do Ollama, prompt, resultado e validação. Indisponibilidade ou saída rejeitada mantém o serviço acessível. [API e saídas estruturadas do Ollama](https://docs.ollama.com/capabilities/structured-outputs)
+
+O **False Positive Challenger** pode fazer uma segunda chamada ao modelo local. Ela recebe os mesmos campos normalizados e a classificação inicial em valores predefinidos. Quando a segunda saída não é válida ou está indisponível, a revisão usa regras locais. A contraprova é consultiva. A decisão de contenção continua com o analista.
 
 ## Base sintética
 
