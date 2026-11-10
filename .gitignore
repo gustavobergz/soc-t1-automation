@@ -1,0 +1,6 @@
+/logs/soc-investigacao-205k.jsonl
+/node_modules/
+/.env
+/.env.*
+__pycache__/
+*.pyc
