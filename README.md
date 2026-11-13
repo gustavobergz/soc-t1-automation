@@ -29,6 +29,8 @@ Para executar com triagem simulada, abra **INICIAR VIRTUALBOX.cmd**. O site tamb
 
 ## Documentação e demonstração
 
+O [manual do repositório e das páginas](DOCUMENTACAO_REPOSITORIO.md) explica as sete telas, as tecnologias utilizadas, a organização do código e como executar o laboratório. Inclui capturas do sistema e exemplos de investigação. [Baixar o manual em Word](docs/Manual_SOC_Clinica.docx).
+
 A [documentação da simulação](DOCUMENTACAO_SIMULACAO.md) explica os cenários, o fluxo de dados, as regras, os campos de logs, a IA local, os controles de privacidade, as métricas e um roteiro de apresentação de oito minutos. O [guia rápido](LEIA-ME.md) resume a apresentação.
 
 A contenção suspende uma sessão de teste no serviço HTTP por 45 s, após aprovação. O painel verifica que a sessão legítima da mesma origem continua acessível e permite reversão antecipada. A autenticação, o prontuário e o IAM são reproduções sintéticas. O coletor e o playbook em Go representam os papéis de Wazuh e n8n. A integração com os produtos originais e dados operacionais exige uma etapa própria.
