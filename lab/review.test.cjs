@@ -77,3 +77,17 @@ test('pulse counts open issues and distinct assets and caps the score', () => {
   });
   assert.equal(review.pulse(Array(12).fill(cases[0])).score, 100);
 });
+
+test('a selected clinical export retains its authorization and requests the missing approval record', () => {
+  const config = require('./clinic.json').find((item) => item.id === 'authorized_shift');
+  const entries = config.steps.slice(1).map((step, index) => ({
+    event: step.kind, event_id: `SEL-${index}`, scenario: config.id, clinical: step,
+    source_ip: '10.77.0.30', username: config.user, host: config.host, session_id: config.session,
+    timestamp: new Date(Date.UTC(2026, 10, 12, 6, 0, index * 12)).toISOString(),
+  }));
+  const context = review.facts(entries, 'alta');
+  assert.equal(context.authorized, false);
+  assert.equal(context.authorizationClaimed, true);
+  assert.match(review.challenge(context).join(' '), /registro de aprovação/);
+  assert.equal(review.shadow({ ...context, chain: true }, 'SOC-200').action, 'no_action');
+});

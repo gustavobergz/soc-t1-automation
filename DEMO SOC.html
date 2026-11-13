@@ -4,17 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>SOC Tier 1 | Laboratório de resposta</title>
+  <title>SOC Clínica | Investigação e resposta local</title>
   <link rel="icon" href="lab/assets/soc-shield.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="lab/painel.css?v=incident-workspace">
-  <script defer src="lab/dashboard.js?v=incident-workspace"></script>
-  <script defer src="lab/log-worker.js?v=incident-workspace"></script>
-  <script defer src="lab/investigation.js?v=incident-workspace"></script>
+  <link rel="stylesheet" href="lab/painel.css?v=clinic-v1">
+  <script defer src="lab/clinic.js?v=clinic-v1"></script>
+  <script defer src="lab/dashboard.js?v=clinic-v1"></script>
+  <script defer src="lab/log-worker.js?v=clinic-v1"></script>
+  <script defer src="lab/investigation.js?v=clinic-v1"></script>
   <script defer src="lab/validation.js"></script>
-  <script defer src="lab/review.js?v=incident-workspace"></script>
-  <script defer src="lab/analysis.js?v=incident-workspace"></script>
-  <script defer src="lab/arena.js?v=incident-workspace"></script>
-  <script defer src="lab/painel.js"></script>
+  <script defer src="lab/review.js?v=clinic-v1"></script>
+  <script defer src="lab/analysis.js?v=clinic-v1"></script>
+  <script defer src="lab/arena.js?v=clinic-v1"></script>
+  <script defer src="lab/painel.js?v=clinic-v1"></script>
 </head>
 <body>
   <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -35,7 +36,7 @@
   </svg>
   <div class="shell">
     <header class="topbar">
-      <a class="top-logo" href="#visao-geral" aria-label="SOC Tier 1 · abrir visão geral"><img src="lab/assets/soc-shield.svg" width="40" height="40" alt=""><span><strong>SOC TIER 1</strong><small>LABORATÓRIO</small></span></a>
+      <a class="top-logo" href="#visao-geral" aria-label="SOC Clínica · abrir visão geral"><img src="lab/assets/soc-shield.svg" width="40" height="40" alt=""><span><strong>SOC CLÍNICA</strong><small>LABORATÓRIO FICTÍCIO</small></span></a>
       <div class="top-product"><strong>SOC</strong><span>Security Operations Center</span></div>
       <form id="global-search" class="global-search" role="search">
         <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
@@ -63,7 +64,7 @@
     <main id="main-content" class="work-area">
     <section id="overview-view" aria-labelledby="overview-title">
       <div class="view-heading">
-        <div><p class="eyebrow">AUTONOMOUS SOC TIER 1</p><h1 id="overview-title">Visão geral</h1><p>Telemetria sintética, investigação e contenção assistida.</p></div>
+        <div><p class="eyebrow">SEGURANÇA EM SAÚDE</p><h1 id="overview-title">SOC de uma clínica fictícia</h1><p>Investigue contas roubadas, exportações e permissões com evidências rastreáveis.</p></div>
         <span class="environment-badge"><span class="status-dot"></span> Ambiente simulado</span>
       </div>
       <div class="kpi-grid" aria-label="Indicadores do laboratório">
@@ -72,6 +73,7 @@
         <article class="kpi kpi-amber"><span class="kpi-icon"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg></span><div><span>Severidade média</span><strong id="kpi-medium">—</strong><button type="button" class="link-button" data-severity-filter="media">Investigar médias <span aria-hidden="true">↗</span></button></div><svg id="trend-medium" class="spark" viewBox="0 0 112 32" aria-hidden="true"></svg></article>
         <article class="kpi kpi-green"><span class="kpi-icon"><svg class="icon" aria-hidden="true"><use href="#i-network"/></svg></span><div><span>Máquinas online</span><strong id="kpi-vms"><b id="kpi-vm-count">0</b><span> / 4</span></strong><a href="#operacao">Abrir operação <span aria-hidden="true">↗</span></a></div></article>
       </div>
+      <section class="panel clinic-intro" aria-labelledby="clinic-intro-title"><div><p class="eyebrow">DO LOG À DECISÃO</p><h2 id="clinic-intro-title">Três situações para investigar</h2><p>Conta médica roubada, exportação indevida e alteração suspeita de permissões. Compare com um plantão autorizado.</p></div><div class="actions"><a class="link-button" href="#analise">Explorar uma rodada registrada ↗</a><a class="link-button" href="DOCUMENTACAO_SIMULACAO.md">Documentação da simulação ↗</a></div><p class="dataset-state">Pacientes, contas e eventos são fictícios. No site, a triagem usa uma saída simulada. O iniciador VirtualBox permite usar um modelo local.</p></section>
       <div class="overview-grid">
         <section class="panel pulse-panel" aria-labelledby="pulse-title">
           <div><p class="eyebrow">SOC PULSE</p><h2 id="pulse-title">Risco atual do laboratório</h2><p id="pulse-status" class="analysis-lead">Aguardando dados da sessão.</p></div>
@@ -112,7 +114,7 @@
     </section>
 
     <div id="live-view" hidden>
-    <div class="view-heading"><div><p class="eyebrow">SIMULAÇÃO CONTROLADA</p><h1>Operação ao vivo</h1><p>Compare a análise manual com o fluxo assistido. A contenção exige aprovação.</p></div><span class="environment-badge">4 MÁQUINAS VIRTUAIS</span></div>
+    <div class="view-heading"><div><p class="eyebrow">CLÍNICA FICTÍCIA</p><h1>Operação ao vivo</h1><p>Escolha uma situação, investigue os logs e avalie a resposta à sessão suspeita.</p></div><span class="environment-badge">4 MÁQUINAS VIRTUAIS</span></div>
 
     <section class="machines" aria-label="Máquinas virtuais">
           <article class="machine" data-vm="manager"><div class="vm-top"><span>VM 01</span><span class="vm-state">Inicializando</span></div><h2>SIEM</h2><p>Coletor Go · papel do Wazuh</p><code>10.77.0.10</code></article>
@@ -122,6 +124,8 @@
     </section>
 
     <section class="controls" aria-label="Executar cenário">
+      <label>Escolha o cenário<select id="clinic-scenario"><option value="">Laboratório anterior · SSH</option></select></label>
+      <p id="clinic-brief" class="analysis-lead">Carregando as situações da clínica.</p>
       <div class="actions">
         <button id="manual" type="button" disabled>1. Rodada manual</button>
         <button id="auto" class="primary" type="button" disabled>2. Assistida · IA simulada</button>
@@ -181,6 +185,7 @@
           <button id="view-audit" class="compact" type="button" hidden>Ver trilha da rodada</button>
           <button id="view-analysis" class="compact" type="button" hidden>Revisar incidente</button>
         </div>
+        <p id="observed-facts" class="analysis-lead" hidden></p>
         <p id="review-summary" class="block-deadline" hidden></p>
         <p id="block-deadline" class="block-deadline" hidden></p>
         <form id="manual-triage" class="triage-form" hidden>
@@ -189,11 +194,11 @@
           <button id="save-triage" class="compact primary" type="submit">Registrar triagem</button>
         </form>
         <ol class="steps">
-          <li id="detect"><span class="step-number">01</span><div><strong>Identificar</strong><p>≥5 falhas em 120 s. Depois, até 60 s para o login e outros 60 s para sudo -l.</p></div></li>
-          <li id="enrich"><span class="step-number">02</span><div><strong>Enriquecer</strong><p>AbuseIPDB simulado · VirusTotal não consultado · MITRE T1110.001 e T1078.003.</p></div></li>
+          <li id="detect"><span class="step-number">01</span><div><strong>Identificar</strong><p>Correlacione login, consultas, exportação e permissões na mesma conta e sessão em até 120 s.</p></div></li>
+          <li id="enrich"><span class="step-number">02</span><div><strong>Enriquecer</strong><p>Escala, autorização, função da conta e técnicas ATT&amp;CK compatíveis com o cenário.</p></div></li>
           <li id="triage"><span class="step-number">03</span><div><strong>Triar</strong><p>JSON validado. Fixture no navegador e Ollama opcional no VirtualBox.</p></div></li>
           <li id="approve-step"><span class="step-number">04</span><div><strong>Validar política e aprovar</strong><p>Somente a origem de teste é elegível. SIEM, endpoint e SOAR são protegidos.</p></div></li>
-          <li id="contain"><span class="step-number">05</span><div><strong>Conter e verificar</strong><p>Bloqueio HTTP de 45 s com expiração automática ou desbloqueio antecipado.</p></div></li>
+          <li id="contain"><span class="step-number">05</span><div><strong>Conter e verificar</strong><p>Suspenda a sessão de teste por 45 s e confira a sessão legítima. Há reversão antecipada.</p></div></li>
           <li id="ticket"><span class="step-number">06</span><div><strong>Registrar e notificar</strong><p>Ticket local, notificação simulada e auditoria em JSONL.</p></div></li>
         </ol>
       </section>
@@ -210,12 +215,12 @@
       <div class="investigation-grid">
         <section class="panel archive-results" aria-label="Resultados da busca">
           <form id="search-logs" class="search-form">
-            <label class="wide">Buscar nos registros<input id="search-text" name="text" type="search" placeholder="ID, mensagem, tipo ou termo" maxlength="200"></label>
+            <label class="wide">Buscar nos registros<input id="search-text" name="text" type="search" placeholder="ID, sessão, cenário ou referência de prontuário" maxlength="200"></label>
             <label>Severidade<select name="severity"><option value="">Todas</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option><option value="info">Informativa</option></select></label>
             <label>Tipo<select id="search-type" name="type"><option value="">Todos</option></select></label>
-            <label>IP de origem<input id="search-ip" name="ip" placeholder="198.51.100.27" maxlength="100"></label>
-            <label>Usuário<input name="user" placeholder="soclab" maxlength="100"></label>
-            <label>Host<input name="host" placeholder="financeiro-07" maxlength="100"></label>
+            <label>IP de origem<input id="search-ip" name="ip" placeholder="10.77.0.30" maxlength="100"></label>
+            <label>Usuário<input name="user" placeholder="MED-017" maxlength="100"></label>
+            <label>Host<input name="host" placeholder="CLINICA-PEP-01" maxlength="100"></label>
             <label>De (UTC)<input type="datetime-local" name="from"></label>
             <label>Até (UTC)<input type="datetime-local" name="to"></label>
             <div class="search-actions"><button id="apply-search" type="submit" class="primary compact" disabled>Buscar</button><button id="clear-search" type="button" class="compact" disabled>Limpar filtros</button><label class="check-label"><input id="selected-filter" name="selected" type="checkbox"> Só evidências</label></div>
@@ -236,7 +241,7 @@
         <aside id="case-panel" class="panel case-panel" aria-labelledby="case-heading" tabindex="-1">
           <div class="panel-header"><div><p class="eyebrow">INVESTIGAÇÃO LOCAL</p><h2 id="case-heading">Caso e evidências</h2></div><button id="new-case" type="button" class="compact">Novo caso</button></div>
           <label>Casos deste navegador<select id="case-list"><option value="">Caso atual</option></select></label>
-          <label>Título<input id="case-title" placeholder="Ex.: autenticação em financeiro-07" maxlength="120"></label>
+          <label>Título<input id="case-title" placeholder="Ex.: acesso suspeito à sessão MED-017" maxlength="120"></label>
           <div class="case-fields"><label>Severidade<select id="case-severity"><option value="">A classificar</option><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></label><label>Status<select id="case-status"><option value="investigando">Em investigação</option><option value="encerrado">Encerrado</option></select></label></div>
           <label id="case-resolution-field" hidden>Conclusão revisada<select id="case-resolution"><option value="">Selecione</option><option value="confirmado">Incidente confirmado</option><option value="falso_positivo">Falso positivo</option><option value="inconclusivo">Inconclusivo</option></select></label>
           <label>Justificativa / notas<textarea id="case-notes" rows="3" maxlength="2000" placeholder="O que liga estes eventos ao caso?"></textarea></label>
@@ -254,6 +259,7 @@
         <label>Rodada<select id="analysis-run"><option value="">Aguardando histórico</option></select></label>
         <button id="analysis-import" type="button" class="compact">Importar trilha JSONL</button><input id="analysis-file" type="file" accept=".jsonl,.ndjson" hidden>
         <p id="analysis-status" class="dataset-state" role="status">Use uma rodada da sessão ou a amostra do laboratório.</p>
+        <p id="analysis-facts" class="analysis-lead" hidden></p>
       </div>
       <div class="analysis-grid">
         <section class="panel replay-panel" aria-labelledby="replay-title">
@@ -309,10 +315,10 @@
         </section>
         <section class="panel analysis-card memory-panel" aria-labelledby="ask-title">
           <div class="panel-header"><div><p class="eyebrow">ASK YOUR SOC</p><h2 id="ask-title">Pergunte aos registros</h2></div><span class="pill">CONSULTAS LOCAIS</span></div>
-          <p class="analysis-lead">Consulte falhas de SSH por IP ou a justificativa de severidade da rodada selecionada. Datas em UTC.</p>
-          <div class="replay-controls"><button class="compact" type="button" data-ask="Quais IPs tiveram mais tentativas no último dia da base?">IPs com mais falhas</button><button class="compact" type="button" data-ask="Por que este incidente recebeu esta severidade?">Explicar severidade</button></div>
+          <p class="analysis-lead">Consulte acessos, exportações, permissões e a justificativa registrada. As respostas citam eventos da base.</p>
+          <div class="replay-controls"><button class="compact" type="button" data-ask="Quais contas consultaram mais prontuários?">Consultas por conta</button><button class="compact" type="button" data-ask="Quais eventos de exportação existem?">Exportações</button><button class="compact" type="button" data-ask="Quais alterações de permissões ocorreram?">Permissões</button><button class="compact" type="button" data-ask="Por que este incidente recebeu esta severidade?">Explicar severidade</button></div>
           <ol id="ask-history" class="ask-history" aria-live="polite"></ol>
-          <form id="ask-form" class="memory-review"><label>Pergunta<input id="ask-question" maxlength="180" required placeholder="Quais IPs mais falharam em 2026-11-09?"></label><button id="ask-submit" class="compact primary" type="submit">Perguntar</button></form>
+          <form id="ask-form" class="memory-review"><label>Pergunta<input id="ask-question" maxlength="180" required placeholder="Quais contas consultaram mais prontuários?"></label><button id="ask-submit" class="compact primary" type="submit">Perguntar</button></form>
         </section>
       </div>
     </section>
@@ -342,17 +348,17 @@
       <div class="validation-grid">
         <section class="panel scope-panel"><div class="panel-header"><h2>O que roda no laboratório</h2></div>
           <dl class="scope-list">
-            <div><dt>Quatro VMs Linux</dt><dd>Convidados Linux inicializados pelo v86 no navegador ou pelo VirtualBox no Windows. As VMs trocam mensagens na rede isolada; a autenticação e os eventos de SSH são reproduções sintéticas.</dd></div>
+            <div><dt>Quatro VMs Linux</dt><dd>Convidados Linux inicializados pelo v86 no navegador ou pelo VirtualBox no Windows. As VMs trocam mensagens na rede isolada. Login, prontuário e IAM são reproduções sintéticas.</dd></div>
             <div><dt>Wazuh e n8n</dt><dd>O coletor e o playbook em Go representam, respectivamente, Wazuh Manager/Agent e n8n. Os produtos de referência da seção 15 ainda precisam ser implantados e validados com eventos reais.</dd></div>
-            <div><dt>Contenção</dt><dd>O endpoint recusa a origem no serviço HTTP da demo. Wazuh Active Response ou firewall ficam para a implantação com agentes reais. A política protege SIEM, SOAR e endpoint e exige aprovação humana.</dd></div>
-            <div><dt>Threat intelligence</dt><dd>O resultado de reputação 92/100 é uma fixture no formato de referência do AbuseIPDB. O IP é privado e nenhuma consulta é enviada ao AbuseIPDB ou ao VirusTotal.</dd></div>
+            <div><dt>Contenção</dt><dd>O endpoint suspende a sessão de teste no serviço HTTP da demo e mantém a sessão de controle acessível. Wazuh Active Response ou firewall ficam para a implantação com agentes reais. A política protege SIEM, SOAR e endpoint e exige aprovação humana.</dd></div>
+            <div><dt>Contexto local</dt><dd>As regras da clínica utilizam escala, autorização e função da conta em dados fictícios. O laboratório anterior de SSH mantém uma reputação sintética. Os eventos ficam fora de consultas ao AbuseIPDB e ao VirusTotal.</dd></div>
           </dl>
         </section>
         <section class="panel scope-panel"><div class="panel-header"><h2>Correlação e triagem</h2></div>
           <dl class="scope-list">
-            <div><dt>Janelas independentes</dt><dd>O guia usa 120 s para as falhas. Neste protótipo, o login deve ocorrer até 60 s após a última falha qualificada e a consulta até 60 s após o login, na mesma origem, conta e máquina.</dd></div>
-            <div><dt>MITRE ATT&amp;CK</dt><dd><a href="https://attack.mitre.org/techniques/T1110/001/" target="_blank" rel="noopener">T1110.001</a> para tentativa de adivinhar senha e <a href="https://attack.mitre.org/techniques/T1078/003/" target="_blank" rel="noopener">T1078.003</a> como hipótese de abuso de conta local. <code>sudo -l</code> consulta permissões. <a href="https://attack.mitre.org/techniques/T1068/" target="_blank" rel="noopener">T1068</a> exige evidência de exploração.</dd></div>
-            <div><dt>IA e validação</dt><dd>O modo padrão usa uma saída simulada. O Ollama opcional recebe apenas campos normalizados e IDs, sem logs brutos, IP, usuário ou host. O SOAR valida esquema, IDs, técnicas e ações recomendadas. Falha ou JSON inválido impede a contenção.</dd></div>
+            <div><dt>Janelas independentes</dt><dd>As regras da clínica correlacionam login e atividade subsequente em até 120 s, na mesma conta, sessão e serviço. O cenário anterior de SSH mantém suas janelas independentes.</dd></div>
+            <div><dt>MITRE ATT&amp;CK</dt><dd><a href="https://attack.mitre.org/techniques/T1078/" target="_blank" rel="noopener">T1078</a> como hipótese de abuso de conta, <a href="https://attack.mitre.org/techniques/T1213/" target="_blank" rel="noopener">T1213</a> para coleta em repositórios e <a href="https://attack.mitre.org/techniques/T1098/" target="_blank" rel="noopener">T1098</a> para manipulação de permissões. O pedido de exportação exige verificar o resultado antes de concluir vazamento.</dd></div>
+            <div><dt>IA e validação</dt><dd>O modo padrão usa uma saída simulada. O Ollama opcional recebe apenas contagens, indicadores de contexto e IDs de evidência. Conta, sessão, prontuário, IP e conteúdo clínico ficam fora da entrada. O SOAR valida esquema, IDs, técnicas e ações recomendadas. Falha ou JSON inválido impede a contenção.</dd></div>
             <div><dt id="llm-status">Modo padrão · fixture local</dt><dd>Modelo, versão, prompt, entrada, resultado e validação aparecem na trilha da rodada. A configuração do Ollama fica no README.</dd></div>
           </dl>
         </section>
@@ -362,7 +368,7 @@
           <div class="table-scroll"><table class="overview-table"><thead><tr><th scope="col">Cenário rotulado</th><th scope="col">Verdade</th><th scope="col">Detector</th><th scope="col">Resultado</th></tr></thead><tbody id="benchmark-cases"><tr><td colspan="4">Os cenários aparecem após a avaliação.</td></tr></tbody></table></div>
           <p class="dataset-state">FPR = FP/(FP+VN). FNR = FN/(FN+VP). Amostra controlada do detector, sem extrapolação para produção ou para decisões humanas.</p>
         </section>
-        <section class="panel scope-panel"><div class="panel-header"><h2>Trilha da rodada</h2><a href="logs/soc-demo.jsonl" download>JSONL de exemplo ↗</a></div>
+        <section class="panel scope-panel"><div class="panel-header"><h2>Trilha da rodada</h2><a href="logs/clinica-demo.jsonl" download>JSONL de exemplo ↗</a></div>
           <label>Rodada auditada<select id="audit-run"><option value="">Aguardando histórico</option></select></label>
           <p id="audit-source" class="dataset-state" role="status">Selecione uma rodada para inspecionar os registros.</p>
           <div class="table-scroll audit-scroll"><table class="overview-table"><thead><tr><th scope="col">Hora UTC</th><th scope="col">Ação / registro</th><th scope="col">Autor</th><th scope="col">Evidências</th></tr></thead><tbody id="audit-rows"><tr><td colspan="4">Nenhum registro selecionado.</td></tr></tbody></table></div>
@@ -376,7 +382,7 @@
       <p id="detail-message"></p><pre id="detail-json"></pre>
       <div class="actions"><button id="detail-select" type="button" class="compact primary" hidden>Marcar como evidência</button><button id="detail-pivot" type="button" class="compact" hidden>Filtrar por este IP</button></div>
     </dialog>
-    <footer><p>Dados simulados. A contenção se aplica ao serviço HTTP do laboratório.</p><div><a href="logs/soc-demo.jsonl" download>Log das rodadas</a><a id="download-corpus" href="logs/soc-investigacao-205k.jsonl.gz" download>Base de 205 mil eventos (.gz)</a></div></footer>
+    <footer><p>Clínica e dados fictícios. A contenção suspende uma sessão no serviço HTTP do laboratório.</p><div><a href="logs/clinica-demo.jsonl" download>Log das rodadas</a><a id="download-corpus" href="logs/clinica-investigacao-205k.jsonl.gz" download>Base de 205 mil eventos (.gz)</a></div></footer>
     <noscript>Ative o JavaScript no navegador para inicializar as VMs.</noscript>
   </main>
   </div>

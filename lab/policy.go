@@ -27,6 +27,7 @@ type decision struct {
 	Incident   string `json:"incident"`
 	Source     string `json:"source_ip"`
 	ApprovedBy string `json:"approved_by"`
+	Session    string `json:"session_id,omitempty"`
 }
 
 type block struct {
@@ -50,6 +51,10 @@ func (a *appliance) contain(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "decisao fora da politica", http.StatusForbidden)
 		return
 	}
+	if config, clinical := clinicScenarios[a.activeScenario]; clinical && request.Session != config.Session {
+		http.Error(w, "sessao fora da politica", http.StatusForbidden)
+		return
+	}
 	if a.blocked != nil {
 		if a.blocked.request == request {
 			w.WriteHeader(http.StatusNoContent)
@@ -64,6 +69,7 @@ func (a *appliance) contain(w http.ResponseWriter, r *http.Request) {
 		"source_ip": request.Source, "incident": request.Incident, "approved_by": request.ApprovedBy,
 		"expires_at": entry.expires.UTC(), "ttl_seconds": int(blockTTL.Seconds()), "scope": "serviço HTTP de demonstração",
 		"action": "http_block", "approval_id": approvalID(request.Run), "target_ip": victimIP,
+		"session_id": request.Session, "simulation_action": "temporary_session_suspension",
 	})
 	time.AfterFunc(blockTTL, func() {
 		a.mu.Lock()
@@ -81,6 +87,7 @@ func (a *appliance) releaseBlock(reason, actor string) {
 	a.emit("endpoint.block_released", request.Run, "A origem foi liberada no serviço de demonstração.", fields{
 		"source_ip": request.Source, "incident": request.Incident, "reason": reason, "actor": actor,
 		"action": "http_unblock", "approval_id": approvalID(request.Run), "target_ip": victimIP,
+		"session_id": request.Session,
 	})
 }
 
@@ -106,8 +113,19 @@ func (a *appliance) playbook(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, managerIP, &incident) {
 		return
 	}
-	if !runID.MatchString(incident.Run) || incident.Incident != "INC-"+incident.Run || incident.User != account ||
-		incident.Host != endpoint || len(incident.Evidence) == 0 || len(incident.Evidence) > 30 ||
+	expectedUser, expectedHost := account, endpoint
+	if config, exists := clinicScenarios[incident.Scenario]; exists {
+		expectedUser, expectedHost = config.User, config.Host
+		if incident.Session != config.Session || incident.Clinic == nil {
+			http.Error(w, "sessao clinica invalida", http.StatusBadRequest)
+			return
+		}
+	} else if incident.Scenario != "" || incident.Clinic != nil {
+		http.Error(w, "cenario desconhecido", http.StatusBadRequest)
+		return
+	}
+	if !runID.MatchString(incident.Run) || incident.Incident != "INC-"+incident.Run || incident.User != expectedUser ||
+		incident.Host != expectedHost || len(incident.Evidence) == 0 || len(incident.Evidence) > 30 ||
 		(incident.Mode != "manual" && !incident.ChainComplete) ||
 		(incident.Mode != "manual" && incident.Mode != "auto" && incident.Mode != "failure" && incident.Mode != "llm") {
 		http.Error(w, "incidente incompleto", http.StatusBadRequest)
@@ -126,12 +144,20 @@ func (a *appliance) playbook(w http.ResponseWriter, r *http.Request) {
 		a.emit("soar.manual_started", incident.Run, "O analista pode concluir a triagem a partir dos eventos brutos.", nil)
 		return
 	}
-	a.emit("soar.enriched", incident.Run, "Contexto de reputação sintético, com mapeamento ATT&CK para as evidências.", fields{
+	enrichment := fields{
 		"incident": incident.Incident, "source_ip": incident.Source, "provider": "fixture local (campos de referência AbuseIPDB)",
-		"reputation": simulatedReputation, "mitre": allowedTechniques, "simulation": true,
+		"reputation": simulatedReputation, "mitre": incidentTechniques(incident), "simulation": true,
 		"abuseipdb": "simulated", "virustotal": "not_queried", "external_query": false,
-		"mitre_excluded": fields{"T1068": "sudo -l consulta permissões; não há evidência de exploração"},
-	})
+		"mitre_excluded": fields{"T1068": "A simulação não contém evidência de exploração de vulnerabilidade"},
+		"scenario":       incident.Scenario,
+	}
+	message := "Contexto de reputação sintético, com mapeamento ATT&CK para as evidências."
+	if incident.Clinic != nil {
+		delete(enrichment, "reputation")
+		enrichment["provider"], enrichment["abuseipdb"], enrichment["context"] = "clinical-context", "not_queried", incident.Clinic
+		message = "Contexto sintético da clínica com escala, autorização e mapeamento ATT&CK para as evidências."
+	}
+	a.emit("soar.enriched", incident.Run, message, enrichment)
 	a.beginTriage(job)
 }
 
@@ -152,10 +178,12 @@ func (a *appliance) requestApproval(job *workflow) {
 		"scope": "serviço HTTP da vítima", "ttl_seconds": int(blockTTL.Seconds()), "applied": false,
 		"predicted_source_status": http.StatusForbidden, "predicted_control_status": http.StatusNoContent,
 		"protected_ips": protectedIPs, "evidence_ids": incident.Evidence,
+		"session_id": incident.Session, "simulation_action": "temporary_session_suspension",
 	})
 	a.emit("soar.approval_requested", incident.Run, "Política validada. Contenção aguarda decisão do analista.", fields{
 		"incident": incident.Incident, "source_ip": incident.Source, "protected_ips": protectedIPs,
 		"ttl_seconds": int(blockTTL.Seconds()), "evidence_ids": incident.Evidence, "approval_id": approvalID(incident.Run),
+		"session_id": incident.Session,
 	})
 }
 
@@ -164,7 +192,7 @@ func validSeverity(value string) bool {
 }
 
 func (a *appliance) applyTriagePolicy(job *workflow, severity string) {
-	if severity == "alta" && job.incident.ChainComplete {
+	if severity == "alta" && job.incident.ChainComplete && clinicEligibility(job.incident) {
 		a.requestApproval(job)
 		return
 	}
@@ -172,6 +200,9 @@ func (a *appliance) applyTriagePolicy(job *workflow, severity string) {
 	reason := "severity_below_high"
 	if severity == "alta" {
 		reason = "insufficient_evidence"
+	}
+	if !clinicEligibility(job.incident) {
+		reason = "authorized_or_already_denied"
 	}
 	a.emit("soar.monitor_only", job.incident.Run, "Caso registrado para acompanhamento; política manteve o serviço acessível.", fields{
 		"incident": job.incident.Incident, "severity": severity, "reason": reason, "action": "monitor",
@@ -203,7 +234,7 @@ func (a *appliance) operatorCommand(run, action string, args []string) {
 		return
 	}
 	incident := job.incident
-	request := decision{run, incident.Incident, incident.Source, operator}
+	request := decision{Run: run, Incident: incident.Incident, Source: incident.Source, ApprovedBy: operator, Session: incident.Session}
 	switch {
 	case action == "llm-result" && job.phase == "awaiting-llm" && len(args) == 1:
 		a.receiveLLM(job, args[0])
@@ -219,6 +250,7 @@ func (a *appliance) operatorCommand(run, action string, args []string) {
 		a.emit("soar.approval_granted", run, "Analista autorizou o bloqueio temporário.", fields{
 			"actor": operator, "incident": incident.Incident, "evidence_ids": incident.Evidence, "action": "approve_http_block",
 			"approval_id": approvalID(run), "source_ip": incident.Source, "target_ip": victimIP, "ttl_seconds": int(blockTTL.Seconds()),
+			"session_id": incident.Session,
 		})
 		a.mu.Unlock()
 		a.applyDecision(job, request)

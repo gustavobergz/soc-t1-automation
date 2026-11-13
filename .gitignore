@@ -1,4 +1,5 @@
 /logs/soc-investigacao-205k.jsonl
+/logs/clinica-investigacao-205k.jsonl
 /node_modules/
 /.env
 /.env.*

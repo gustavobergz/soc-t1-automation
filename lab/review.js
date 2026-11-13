@@ -9,6 +9,9 @@ globalThis.SocReview = (() => {
     ['ssh.failed', 'failure'], ['ssh.accepted', 'login'], ['sudo.attempt', 'privilege'], ['sudo.list', 'privilege'],
     ['sudo.denied', 'admin_denied'], ['change.approved', 'change'], ['audit.command', 'activity'],
     ['process.exec', 'activity'], ['process.started', 'activity'], ['network.connection', 'activity'],
+    ['auth.failed', 'failure'], ['auth.login', 'login'], ['ehr.record_read', 'record_read'],
+    ['ehr.export_requested', 'export_request'], ['ehr.export_denied', 'export_denied'],
+    ['iam.role_changed', 'role_change'], ['iam.admin_access', 'admin_access'],
   ]);
 
   function timeline(entries) {
@@ -39,14 +42,23 @@ globalThis.SocReview = (() => {
     const privilege = events.find((event) => event.kind === 'privilege' && (!login || event.time >= login.time));
     const assets = [...new Set(events.map((event) => event.host).filter((host) => typeof host === 'string' && host))].sort();
     const entity = audit || events.find((event) => event.kind !== 'change');
-    const mitre = entries.findLast((event) => event.event === 'soar.enriched')?.mitre;
+    const scenario = audit?.scenario || events.find((event) => event.record.scenario)?.record.scenario || '';
+    const clinical = events.some((event) => event.record.clinical || event.record.sector === 'healthcare');
+    const session = audit?.session_id || events.find((event) => event.record.session_id)?.record.session_id || '';
+    const authorized = events.some((event) => event.kind === 'change' && event.record.clinical?.approved === true);
+    const exportDenied = events.some((event) => event.kind === 'export_denied');
+    const mitre = entries.findLast((event) => event.event === 'soar.enriched')?.mitre || globalThis.SocClinic?.get(scenario)?.mitre;
     const text = (value) => typeof value === 'string' ? value : '';
     return {
       source: text(entity?.source_ip || entity?.ip), host: text(entity?.host), user: text(entity?.username || entity?.user),
       sequence, failures, evidenceIds: [...ids], login: Boolean(login), privilege: Boolean(privilege), events, assets,
+      clinical, scenario, session, authorized, exportDenied,
+      authorizationClaimed: events.some((event) => ['export_request', 'role_change'].includes(event.kind) && event.record.clinical?.approved === true),
+      exportRequested: events.some((event) => event.kind === 'export_request'),
+      recordsRead: events.filter((event) => event.kind === 'record_read').reduce((total, event) => total + (event.record.clinical?.count || 1), 0),
       otherActivity: Boolean(privilege && events.some((event) => event.kind === 'activity' && event.time > privilege.time && event.host === privilege.host)),
       authorizedChange: events.some((event) => event.kind === 'change'),
-      mixed: new Set(events.filter((event) => event.kind !== 'change').map((event) => JSON.stringify([event.ip, event.host, event.user]))).size > 1,
+      mixed: new Set(events.filter((event) => event.kind !== 'change').map((event) => JSON.stringify([event.ip, event.host, event.user, event.record.session_id]))).size > 1,
       chain: audit?.chain_complete === true,
       severity: entries.findLast((event) => event.event === 'soar.triaged' || event.event === 'soar.manual_triaged')?.severity || severity,
       mitre: Array.isArray(mitre) ? mitre.filter((value) => typeof value === 'string').slice(0, 10) : [],
@@ -54,6 +66,16 @@ globalThis.SocReview = (() => {
   }
 
   function gaps(context) {
+    if (context.clinical) {
+      const missing = [];
+      if (!context.login) missing.push('Recuperar o login e vincular as ações à mesma sessão clínica.');
+      if (!context.authorized) missing.push('Verificar escala, mudança aprovada e autorização com o responsável.');
+      if (context.scenario === 'stolen_account') missing.push('Confirmar com a titular se reconhece a sessão e o dispositivo.');
+      if (context.exportRequested && !context.exportDenied) missing.push('Buscar resultado da exportação e evidência de entrega. O pedido não confirma vazamento.');
+      if (context.mixed) missing.push('Separar contas, serviços e sessões diferentes antes de concluir.');
+      if (context.scenario === 'privilege_change') missing.push('Revisar a origem da concessão de administrador e o histórico de IAM.');
+      return missing;
+    }
     const missing = [];
     if (context.failures < 5) missing.push('Conferir se há mais falhas da mesma origem, conta e máquina na janela de correlação.');
     if (!context.login) missing.push('Confirmar o resultado da autenticação nos registros do endpoint.');
@@ -67,8 +89,16 @@ globalThis.SocReview = (() => {
   function challenge(context) {
     const findings = [];
     if (protectedIPs.includes(context.source)) findings.push('A origem está na lista de IPs protegidos do laboratório.');
-    if (context.authorizedChange) findings.push('Há um registro de mudança autorizada. Valide se ele corresponde a esta atividade.');
+    if (context.authorizedChange && !context.clinical) findings.push('Há um registro de mudança autorizada. Valide se ele corresponde a esta atividade.');
     if (context.mixed) findings.push('As evidências não pertencem todas à mesma origem, conta e máquina.');
+    if (context.clinical) {
+      if (context.authorized) findings.push('Há autorização vinculada à sessão e ao serviço. Confirme a validade do registro.');
+      if (context.authorizationClaimed && !context.authorized) findings.push('O evento indica autorização. Recupere o registro de aprovação correspondente antes de concluir.');
+      if (context.exportDenied) findings.push('A aplicação negou a exportação. Este pedido não comprova extração de dados.');
+      if (context.login) findings.push('Login fora da escala ou em dispositivo novo pode ter explicação legítima. Confira o plantão.');
+      if (context.exportRequested && !context.exportDenied) findings.push('Solicitação de exportação exige verificar o resultado antes de concluir que houve vazamento.');
+      return findings;
+    }
     if (context.failures < 5) findings.push('A seleção contém menos de cinco falhas de autenticação.');
     if (context.login) findings.push('Um login aceito também é compatível com uso autorizado da conta.');
     if (context.privilege) findings.push('A consulta de privilégios, sozinha, não comprova elevação.');
@@ -76,11 +106,13 @@ globalThis.SocReview = (() => {
   }
 
   function shadow(context, run) {
-    const eligible = context.source === threatSource && context.chain && context.severity === 'alta';
+    const eligible = context.source === threatSource && context.chain && context.severity === 'alta' &&
+      !context.authorized && !context.authorizationClaimed && !context.exportDenied && !context.mixed;
     return {
       event: 'panel.shadow_preview', run, timestamp: new Date().toISOString(), synthetic: true,
       action: eligible ? 'http_block' : 'no_action', applied: false, eligible,
       source_ip: context.source || null, target_ip: victim, scope: 'serviço HTTP de demonstração',
+      session_id: context.session || null, simulation_action: context.clinical ? 'temporary_session_suspension' : 'http_block',
       ttl_seconds: eligible ? 45 : 0, predicted_source_status: eligible ? 403 : null,
       predicted_control_status: eligible ? 204 : null, protected_ips: [...protectedIPs], evidence_ids: context.evidenceIds,
       reason: eligible ? 'Previsão da política local, sujeita à aprovação humana.' : 'A origem, a severidade ou a sequência não atendem à política de contenção do laboratório.',
@@ -102,6 +134,8 @@ globalThis.SocReview = (() => {
   const stepLabels = {
     failure: 'Falha de autenticação', login: 'Autenticação aceita', privilege: 'Consulta de privilégios',
     admin_denied: 'Operação administrativa negada', change: 'Mudança autorizada registrada', activity: 'Atividade do endpoint',
+    record_read: 'Consulta a prontuários fictícios', export_request: 'Exportação solicitada',
+    export_denied: 'Exportação negada pela aplicação', role_change: 'Permissão administrativa concedida', admin_access: 'Área administrativa acessada',
   };
 
   function story(context) {
@@ -116,7 +150,8 @@ globalThis.SocReview = (() => {
     }
     return steps.map((step) => ({
       ...step,
-      label: step.records.length === 1 ? stepLabels[step.kind] : `${step.records.length} falhas de autenticação`,
+      label: step.kind === 'record_read' ? `${step.record.clinical?.count || 1} consultas a prontuários fictícios` :
+        step.records.length === 1 ? stepLabels[step.kind] : `${step.records.length} falhas de autenticação`,
     }));
   }
 
@@ -134,11 +169,14 @@ globalThis.SocReview = (() => {
     const decision = entries.findLast((event) => ['soar.approval_granted', 'soar.approval_rejected', 'soar.policy_denied', 'soar.monitor_only'].includes(event.event));
     return {
       event: 'panel.decision_receipt', version: 1, run: id, source,
+      scenario: audit?.scenario || null, session_id: audit?.session_id || null,
       timestamp: triage.timestamp, incident: triage.incident || audit?.incident || null,
       rule_id: audit?.rule_id || null, correlation_event: audit?.event || null,
       provider: triage.provider || 'analista', model: triage.model || null, model_version: triage.model_version || null,
       prompt_version: triage.prompt_version || null, prompt: triage.prompt || null, validation: triage.validation || null,
-      severity: triage.severity || null, reason: result.severity_reason || triage.justification || triage.message || '',
+      severity: triage.severity || null, reason: triage.policy_reason || result.severity_reason || triage.justification || triage.message || '',
+      severity_source: triage.severity_source || null, model_suggested_severity: triage.model_suggested_severity || null,
+      severity_disagreement: triage.severity_disagreement === true, model_reason: result.severity_reason || null,
       triage_actor: triage.actor || null,
       uncertainty: result.uncertainty || null,
       recommendations: Array.isArray(result.recommendations) ? result.recommendations.filter((item) => typeof item === 'string') : [],

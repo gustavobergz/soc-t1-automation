@@ -1,4 +1,4 @@
-param([ValidateSet('Start', 'Install', 'Stop')][string]$Mode = 'Start', [switch]$NoOpen)
+param([ValidateSet('Start', 'Install', 'Stop')][string]$Mode = 'Start', [switch]$NoOpen, [switch]$LocalAI)
 
 $ErrorActionPreference = 'Stop'
 $installDir = (Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Oracle\VirtualBox' -ErrorAction SilentlyContinue).InstallDir
@@ -55,6 +55,7 @@ foreach ($machine in $machines) {
 }
 
 if ($Mode -ne 'Start') { exit }
+if ($LocalAI) { . (Join-Path $PSScriptRoot 'LocalAI.ps1') }
 
 $node = Get-Command node -ErrorAction Stop
 $bridge = Join-Path $PSScriptRoot 'lab\virtualbox.cjs'
@@ -63,6 +64,10 @@ if ($listener) {
     $owner = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)"
     if ($owner.Name -ne 'node.exe' -or $owner.CommandLine.IndexOf($bridge, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
         throw 'A porta 8771 esta em uso por outro programa.'
+    }
+    if ($LocalAI) {
+        Stop-Process -Id $listener.OwningProcess
+        $listener = $null
     }
 }
 $imageHash = (Get-FileHash -LiteralPath $image -Algorithm SHA256).Hash

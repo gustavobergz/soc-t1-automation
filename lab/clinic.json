@@ -1,0 +1,60 @@
+[
+  {
+    "id": "stolen_account", "title": "Conta médica roubada", "user": "MED-017", "role": "medica",
+    "host": "CLINICA-PEP-01", "session": "SES-MED-017", "rule_id": 110101,
+    "threat": "possivel_conta_comprometida", "mitre": ["T1078", "T1213"],
+    "brief": "Uma credencial médica fictícia é usada em dispositivo desconhecido, fora da escala. A sessão consulta prontuários sem vínculo de atendimento e solicita exportação.",
+    "rationale": "Login em dispositivo desconhecido, fora da escala, seguido de 80 consultas sem vínculo e solicitação de exportação.",
+    "severity": "alta", "answer": "inconclusivo", "key_step": 3,
+    "explanation": "A sequência justifica investigação e contenção da sessão. O gabarito do laboratório informa credencial roubada, mas os logs ainda exigem confirmação com a titular para atribuir o acesso.",
+    "steps": [
+      {"kind": "auth.login", "message": "Sessão médica aceita em dispositivo desconhecido e fora da escala cadastrada.", "device_known": false, "shift_active": false, "outcome": "success"},
+      {"kind": "ehr.record_read", "message": "Resumo de auditoria registra 40 consultas a prontuários fictícios sem vínculo de atendimento.", "count": 40, "care_assigned": false, "outcome": "success"},
+      {"kind": "ehr.record_read", "message": "Outras 40 consultas a prontuários fictícios sem vínculo na mesma sessão.", "count": 40, "care_assigned": false, "outcome": "success"},
+      {"kind": "ehr.export_requested", "message": "Sessão solicita exportação de 80 registros. O pedido, sozinho, não comprova download ou vazamento.", "count": 80, "approved": false, "outcome": "requested"}
+    ]
+  },
+  {
+    "id": "data_export", "title": "Exportação indevida", "user": "REC-004", "role": "recepcao",
+    "host": "CLINICA-PEP-01", "session": "SES-REC-004", "rule_id": 110102,
+    "threat": "possivel_exportacao_indevida", "mitre": ["T1213"],
+    "brief": "Uma conta de recepção solicita exportação clínica em lote. A aplicação nega o pedido por falta de autorização.",
+    "rationale": "Conta de recepção solicitou 250 registros em lote e recebeu recusa explícita de autorização.",
+    "severity": "media", "answer": "confirmado", "key_step": 2,
+    "explanation": "A tentativa incompatível com a autorização está registrada. A recusa confirma que esta exportação não foi concluída. Investigue a intenção e a titularidade da sessão.",
+    "steps": [
+      {"kind": "auth.login", "message": "Conta de recepção autenticada em estação conhecida durante a escala.", "device_known": true, "shift_active": true, "outcome": "success"},
+      {"kind": "ehr.export_requested", "message": "Conta solicita lote de 250 registros clínicos, além do escopo de recepção.", "count": 250, "approved": false, "outcome": "requested"},
+      {"kind": "ehr.export_denied", "message": "Aplicação recusou a exportação de 250 registros por falta de autorização. Nenhum arquivo foi entregue por este pedido.", "count": 250, "approved": false, "outcome": "denied"}
+    ]
+  },
+  {
+    "id": "privilege_change", "title": "Alteração suspeita de permissões", "user": "ENF-009", "role": "enfermagem",
+    "host": "CLINICA-IAM-01", "session": "SES-ENF-009", "rule_id": 110103,
+    "threat": "possivel_abuso_privilegios", "mitre": ["T1098"],
+    "brief": "A auditoria registra uma sessão de enfermagem alterada para administrador sem mudança aprovada. Trata-se de uma reprodução de eventos de IAM.",
+    "rationale": "A auditoria registrou concessão de administrador à sessão e acesso administrativo sem mudança aprovada.",
+    "severity": "alta", "answer": "confirmado", "key_step": 1,
+    "explanation": "O evento de IAM registra a alteração efetivada e o acesso subsequente. Isso sustenta investigar abuso de permissões. A técnica não pressupõe exploração de vulnerabilidade.",
+    "steps": [
+      {"kind": "auth.login", "message": "Conta de enfermagem autenticada em estação conhecida durante a escala.", "device_known": true, "shift_active": true, "outcome": "success"},
+      {"kind": "iam.role_changed", "message": "Auditoria de IAM registra concessão de administrador sem referência de mudança aprovada.", "new_role": "administrador", "approved": false, "outcome": "success"},
+      {"kind": "iam.admin_access", "message": "Mesma sessão acessou a área administrativa após a alteração de permissões.", "outcome": "success"}
+    ]
+  },
+  {
+    "id": "authorized_shift", "title": "Controle benigno · plantão autorizado", "user": "MED-017", "role": "medica",
+    "host": "CLINICA-PEP-01", "session": "SES-PLANTAO-017", "rule_id": 110101,
+    "threat": "possivel_conta_comprometida", "mitre": ["T1078", "T1213"],
+    "brief": "Plantão extraordinário e exportação de continuidade do cuidado aprovados no registro de mudanças fictício.",
+    "rationale": "O volume e o horário são explicados pelo plantão extraordinário e pela exportação autorizada, vinculados à mesma conta, sessão e serviço.",
+    "severity": "baixa", "answer": "falso_positivo", "key_step": 0,
+    "explanation": "A autorização fictícia corresponde à conta, sessão e serviço observados. A correlação sinaliza o padrão, e a revisão contextual direciona para acompanhamento.",
+    "steps": [
+      {"kind": "change.approved", "message": "CHG-CLIN-017 autoriza plantão extraordinário e exportação de 80 registros para a mesma conta, sessão e serviço.", "approved": true, "outcome": "success"},
+      {"kind": "auth.login", "message": "Conta médica aceita em estação temporária durante plantão extraordinário documentado.", "device_known": false, "shift_active": false, "outcome": "success"},
+      {"kind": "ehr.record_read", "message": "Resumo de auditoria registra 80 consultas previstas na atividade autorizada.", "count": 80, "care_assigned": true, "outcome": "success"},
+      {"kind": "ehr.export_requested", "message": "Solicitada exportação de 80 registros com autorização vinculada à sessão.", "count": 80, "approved": true, "outcome": "requested"}
+    ]
+  }
+]

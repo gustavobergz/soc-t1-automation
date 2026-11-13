@@ -27,6 +27,7 @@ function updateActions() {
   const online = Boolean(lab && ready.size === 4);
   const phase = current?.phase;
   for (const id of ['manual', 'auto', 'failure', 'llm']) $(id).disabled = !online || (phase && phase !== 'done');
+  $('clinic-scenario').disabled = Boolean(phase && phase !== 'done');
   $('llm').hidden = !llmConfigured;
   $('benchmark').disabled = !lab || !ready.has('manager');
   for (const [id, show] of Object.entries({
@@ -248,6 +249,11 @@ function checkProbe(event) {
       current.verified = true;
       vmState('attacker', 'Origem contida', true);
       checkContained();
+      if (current.scenario) command('attacker', ['probe', 'legitimate']);
+      break;
+    case 'legitimate':
+      current.legitimate = true;
+      setStep('contain', `Sessão suspeita HTTP 403 · sessão legítima HTTP 204 · prazo ${current.ttl} s.`);
       break;
     case 'released':
       setStep('contain', `${current.released === 'rollback' ? 'Desbloqueio manual' : 'Expiração automática'} verificado · atacante HTTP 204.`);
@@ -296,7 +302,7 @@ function onEvent(event) {
   const now = performance.now();
   switch (event.event) {
     case 'endpoint.prepared':
-      command('attacker', ['run', current.mode]);
+      command('attacker', ['run', current.mode, ...(current.scenario ? [current.scenario] : [])]);
       break;
     case 'attack.started':
       current.marks.started = now;
@@ -319,6 +325,11 @@ function onEvent(event) {
       setStep('detect', event.rule_id
         ? `Regra ${event.rule_id} · ${event.failures} falhas em até ${event.failure_window_seconds || 120} s, login aceito e sudo -l para ${event.username}.`
         : `${event.evidence_ids.length} evidências vinculadas · ${event.failures} falhas selecionadas para ${event.username}.`);
+      if (event.clinic) {
+        setStep('detect', `Regra ${event.rule_id} · ${event.evidence_ids.length} evidências da sessão ${event.session_id} · ${SocClinic.get(event.scenario)?.title || event.scenario}.`);
+        $('observed-facts').hidden = false;
+        $('observed-facts').textContent = `Fatos registrados · ${SocClinic.describe(event.clinic)}.`;
+      }
       break;
     case 'siem.selection_rejected':
       clearTimeout(timeout);
@@ -334,9 +345,10 @@ function onEvent(event) {
       automation.set(event.run, false);
       showSessionMetrics();
       setStep('enrich', `AbuseIPDB simulado ${event.reputation}/100 · VirusTotal não consultado · ${event.mitre.join(' e ')}. T1068 não atribuído.`);
+      if (current.scenario) setStep('enrich', `Contexto local da clínica · ATT&CK ${event.mitre.join(' e ')} · sem consulta externa.`);
       break;
     case 'soar.triage_requested':
-      expectEvent(50000);
+      expectEvent(155000);
       status(`${current.id} · Aguardando triagem do Ollama local.`);
       break;
     case 'soar.triage_failed':
@@ -353,6 +365,10 @@ function onEvent(event) {
       $('severity').classList.add(`severity-${event.severity}`);
       $('severity').textContent = `SEVERIDADE ${SocLogs.severity(event.severity).toUpperCase()}`;
       setStep('triage', event.result ? `${event.simulation ? 'Simulada' : 'Ollama local'} · JSON validado · ${event.result.uncertainty}` : event.justification);
+      if (event.severity_source === 'clinical_rule') {
+        $('severity').textContent = `PRIORIDADE ${SocLogs.severity(event.severity).toUpperCase()}`;
+        setStep('triage', `Regra: ${SocLogs.severity(event.severity)} · sugestão ${event.simulation ? 'simulada' : 'da IA'}: ${SocLogs.severity(event.model_suggested_severity)}${event.severity_disagreement ? ' · divergência para revisão' : ''}. Incerteza sugerida: ${event.result.uncertainty}`);
+      }
       break;
     case 'soar.triage_rejected':
       clearTimeout(timeout);
@@ -363,6 +379,7 @@ function onEvent(event) {
       setStep('approve-step', event.reason === 'insufficient_evidence'
         ? 'A seleção não demonstra a sequência completa exigida para conter.'
         : 'A severidade registrada encaminha o caso para acompanhamento.');
+      if (event.reason === 'authorized_or_already_denied') setStep('approve-step', 'Autorização registrada ou operação já negada pela aplicação. Caso encaminhado para acompanhamento.');
       probe('monitoring');
       break;
     case 'soar.approval_requested':
@@ -395,6 +412,7 @@ function onEvent(event) {
       $('block-deadline').hidden = false;
       $('block-deadline').textContent = `Prazo de ${event.ttl_seconds} s · expiração prevista às ${utcTime(event.expires_at)}.`;
       setStep('contain', `${event.source_ip} bloqueado por ${event.ttl_seconds} s · verificando a sonda.`, false);
+      if (event.session_id) setStep('contain', `Sessão ${event.session_id} suspensa por ${event.ttl_seconds} s · verificando as sondas.`, false);
       probe('contained');
       break;
     case 'attack.probe':
@@ -440,20 +458,21 @@ function selectFilter(value) {
 }
 
 function run(mode) {
-  current = { id: `SOC-${Date.now()}${++sequence}`, mode, phase: 'collecting', rawCount: 0, marks: {}, evidence: new Set() };
+  current = { id: `SOC-${Date.now()}${++sequence}`, mode, scenario: $('clinic-scenario').value, phase: 'collecting', rawCount: 0, marks: {}, evidence: new Set() };
   vmState('attacker', 'Online');
   $('severity').textContent = mode === 'manual' ? 'MODO MANUAL' : 'EM ESPERA';
   $('severity').className = 'pill';
   $('manual-triage').reset();
   $('block-deadline').hidden = true;
   $('review-summary').hidden = true;
+  $('observed-facts').hidden = true;
   for (const step of steps) setStep(step, defaults[step], false);
   selectFilter(mode === 'manual' ? 'manager' : 'all');
   status(`${current.id} · Preparando a vítima para a rodada.`);
   updateActions();
   showMetrics();
   expectEvent();
-  command('victim', ['prepare']);
+  command('victim', ['prepare', ...(current.scenario ? [current.scenario] : [])]);
 }
 
 for (const id of ['manual', 'auto', 'failure', 'llm']) $(id).addEventListener('click', () => run(id));
@@ -471,7 +490,7 @@ document.addEventListener('soc:shadow-preview', ({ detail }) => {
 });
 $('benchmark').addEventListener('click', async () => {
   try {
-    await lab.command('manager', 'benchmark');
+    await lab.command('manager', $('clinic-scenario').value ? 'benchmark-clinic' : 'benchmark');
     location.hash = '#validacao';
   } catch (error) {
     status(`Avaliação indisponível. ${error.message}`, true);
@@ -545,6 +564,7 @@ function useVirtualBox() {
 async function boot() {
   timeout = setTimeout(() => status('A inicialização está demorando. Verifique o iniciador ou mantenha a aba ativa.', true), 75000);
   try {
+    await SocClinic.ready;
     if (!virtualBox) {
       $('runtime').textContent = 'V86 · NO NAVEGADOR';
       await Promise.all(['lab/runtime/worker.js', 'lab/runtime/images.js', 'lab/emulator.js'].map(loadScript));

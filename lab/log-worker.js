@@ -23,6 +23,7 @@ function archiveWorker() {
       user: scalar(raw.username ?? raw.user?.name ?? raw.user),
       ip: scalar(raw.source_ip ?? raw.source?.ip ?? raw.srcip),
       message: scalar(raw.message ?? raw.raw),
+      session: scalar(raw.session_id), scenario: scalar(raw.scenario), patient: scalar(raw.patient_ref),
     };
   }
 
@@ -124,7 +125,7 @@ function archiveWorker() {
             (host && !row.host.toLowerCase().includes(host)) || (from !== null && !(row.time >= from)) ||
             (to !== null && !(row.time <= to))) return false;
         if (!terms.length) return true;
-        const haystack = `${row.eventId} ${row.type} ${row.message} ${row.host} ${row.user} ${row.ip}`.toLowerCase();
+        const haystack = `${row.eventId} ${row.type} ${row.message} ${row.host} ${row.user} ${row.ip} ${row.session} ${row.scenario} ${row.patient}`.toLowerCase();
         return terms.every((term) => haystack.includes(term));
       });
       if (order === 'desc') matches.reverse();
@@ -144,7 +145,7 @@ function archiveWorker() {
       const origins = new Map();
       let total = 0;
       for (const row of records) {
-        if (row.type !== 'ssh.failed' || !(row.time >= from && row.time < to) || !row.ip) continue;
+        if (!['ssh.failed', 'auth.failed'].includes(row.type) || !(row.time >= from && row.time < to) || !row.ip) continue;
         total++;
         if (!origins.has(row.ip)) origins.set(row.ip, { ip: row.ip, count: 0, example: row.raw });
         origins.get(row.ip).count++;
@@ -159,7 +160,7 @@ function archiveWorker() {
       let first;
       let last;
       for (const row of records) {
-        if (row.type !== 'ssh.accepted' || row.user !== query.user || !Number.isFinite(row.time) || row.time >= query.before) continue;
+        if (!['ssh.accepted', 'auth.login'].includes(row.type) || row.user !== query.user || !Number.isFinite(row.time) || row.time >= query.before) continue;
         count++;
         hours[new Date(row.time).getUTCHours()]++;
         if (row.host) hosts.set(row.host, (hosts.get(row.host) || 0) + 1);
@@ -167,6 +168,25 @@ function archiveWorker() {
         last = row.time;
       }
       postMessage({ type: 'analytics', id, source: archiveSource, result: { count, hours, knownHost: hosts.has(query.host), hosts: hosts.size, first, last } });
+    }
+    if (query.kind === 'clinic_activity') {
+      const accepted = {
+        reads: ['ehr.record_read'], exports: ['ehr.export_requested', 'ehr.export_denied'],
+        permissions: ['iam.role_changed', 'iam.admin_access'],
+      };
+      if (!Object.hasOwn(accepted, query.metric)) return;
+      const groups = new Map();
+      let total = 0;
+      for (const row of records) {
+        if (!accepted[query.metric].includes(row.type)) continue;
+        const key = query.metric === 'reads' ? row.user : row.type;
+        if (!groups.has(key)) groups.set(key, { key, count: 0, example: row.raw });
+        const amount = query.metric === 'reads' ? row.raw.clinical?.count || 1 : 1;
+        groups.get(key).count += amount;
+        total += amount;
+      }
+      postMessage({ type: 'analytics', id, source: archiveSource, result: { total,
+        top: [...groups.values()].sort((a, b) => b.count - a.count).slice(0, 5) } });
     }
   }
 

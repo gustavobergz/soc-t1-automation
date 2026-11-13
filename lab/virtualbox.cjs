@@ -15,9 +15,9 @@ const journal = [];
 let sequence = 0;
 
 const commands = {
-  manager: /^(?:benchmark|manual-detect SOC-\d{3,24} SOC-\d{3,24}-\d{2,4}(?:,SOC-\d{3,24}-\d{2,4}){0,29})$/,
-  victim: /^prepare SOC-\d{3,}$/,
-  attacker: /^(?:run SOC-\d{3,} (?:manual|auto|failure|llm)|probe SOC-\d{3,} (?:pending|contained|released|denied|rejected|monitoring))$/,
+  manager: /^(?:benchmark(?:-clinic)?|manual-detect SOC-\d{3,24} SOC-\d{3,24}-\d{2,4}(?:,SOC-\d{3,24}-\d{2,4}){0,29})$/,
+  victim: /^prepare SOC-\d{3,}(?: (?:stolen_account|data_export|privilege_change|authorized_shift))?$/,
+  attacker: /^(?:run SOC-\d{3,} (?:manual|auto|failure|llm)(?: (?:stolen_account|data_export|privilege_change|authorized_shift))?|probe SOC-\d{3,} (?:pending|contained|released|denied|rejected|monitoring|legitimate))$/,
   soar: /^(?:manual-triage SOC-\d{3,24} (?:alta|media|baixa) [A-Za-z0-9_-]{4,1600}|(?:approve|reject|rollback) SOC-\d{3,24})$/,
 };
 const assets = new Map([
@@ -30,9 +30,14 @@ const assets = new Map([
   ['/lab/review.js', ['lab/review.js', 'text/javascript; charset=utf-8']],
   ['/lab/analysis.js', ['lab/analysis.js', 'text/javascript; charset=utf-8']],
   ['/lab/arena.js', ['lab/arena.js', 'text/javascript; charset=utf-8']],
+  ['/lab/clinic.js', ['lab/clinic.js', 'text/javascript; charset=utf-8']],
+  ['/lab/clinic.json', ['lab/clinic.json', 'application/json; charset=utf-8']],
   ['/lab/investigation.js', ['lab/investigation.js', 'text/javascript; charset=utf-8']],
   ['/lab/log-worker.js', ['lab/log-worker.js', 'text/javascript; charset=utf-8']],
   ['/logs/soc-demo.jsonl', ['logs/soc-demo.jsonl', 'application/x-ndjson; charset=utf-8']],
+  ['/logs/clinica-demo.jsonl', ['logs/clinica-demo.jsonl', 'application/x-ndjson; charset=utf-8']],
+  ['/logs/clinica-investigacao-205k.jsonl.gz', ['logs/clinica-investigacao-205k.jsonl.gz', 'application/gzip']],
+  ['/DOCUMENTACAO_SIMULACAO.md', ['DOCUMENTACAO_SIMULACAO.md', 'text/plain; charset=utf-8']],
   ['/logs/soc-investigacao-205k.jsonl.gz', ['logs/soc-investigacao-205k.jsonl.gz', 'application/gzip']],
 ]);
 
@@ -129,7 +134,7 @@ async function handle(request, response) {
     channel.socket.write(`${data.line}\n`);
     return reply(response, 204);
   }
-  const asset = request.method === 'GET' && assets.get(request.url);
+  const asset = request.method === 'GET' && assets.get(new URL(request.url, origin).pathname);
   if (!asset) return reply(response, 404);
   const stream = createReadStream(path.join(root, asset[0]));
   stream.on('error', () => response.headersSent ? response.destroy() : reply(response, 404));

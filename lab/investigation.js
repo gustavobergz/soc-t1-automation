@@ -5,7 +5,7 @@ globalThis.SocLogs = (() => {
   const format = new Intl.NumberFormat('pt-BR');
   const labels = { alta: 'Alta', media: 'Média', baixa: 'Baixa', info: 'Informativa' };
   const severity = (value) => Object.hasOwn(labels, value) ? labels[value] : 'Sem nível';
-  const corpus = 'soc-investigacao-205k.jsonl.gz';
+  const corpus = 'clinica-investigacao-205k.jsonl.gz';
   const hosted = location.protocol !== 'file:' && location.origin !== 'http://127.0.0.1:8771';
   const storageKey = 'soc-tier1-cases-v1';
   const form = el('search-logs');

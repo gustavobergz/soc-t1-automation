@@ -46,7 +46,7 @@ globalThis.SocDashboard = (() => {
     el('kpi-total').textContent = number.format(total);
     el('kpi-high').textContent = number.format(levels.alta);
     el('kpi-medium').textContent = number.format(levels.media);
-    archiveState(source.startsWith('soc-investigacao-205k.') ? 'Base sintética' : 'Arquivo importado');
+    archiveState(/^(?:clinica-investigacao|soc-investigacao)-205k\./.test(source) ? 'Base sintética' : 'Arquivo importado');
     chart('trend-total', buckets.total);
     chart('trend-high', buckets.alta);
     chart('trend-medium', buckets.media);
@@ -133,7 +133,7 @@ globalThis.SocDashboard = (() => {
       const title = button(record.incident, () => SocLogs.showDetails(record));
       header.append(title, badge(record.severity));
       const state = document.createElement('p');
-      state.textContent = `${record.mode === 'manual' ? 'Triagem manual' : 'Abuso de credenciais'} · ${record.state}`;
+      state.textContent = `${globalThis.SocClinic?.get(record.scenario)?.title || (record.mode === 'manual' ? 'Triagem manual' : 'Abuso de credenciais')} · ${record.state}`;
       const time = document.createElement('small');
       time.textContent = `${date.format(new Date(record.timestamp))} UTC`;
       row.append(header, state, time);
@@ -188,7 +188,7 @@ globalThis.SocDashboard = (() => {
   for (const control of document.querySelectorAll('[data-severity-filter]')) {
     control.addEventListener('click', () => SocLogs.openSearch({ severity: control.dataset.severityFilter }));
   }
-  const sampleRecords = location.protocol === 'file:' ? Promise.resolve([]) : fetch('logs/soc-demo.jsonl')
+  const sampleRecords = location.protocol === 'file:' ? Promise.resolve([]) : fetch('logs/clinica-demo.jsonl')
     .then((response) => response.ok ? response.text() : '')
     .then((text) => text.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line)))
     .catch(() => []);

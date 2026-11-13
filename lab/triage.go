@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
 	"strings"
@@ -53,19 +54,25 @@ type challenge struct {
 }
 
 func triageInput(incident alert) fields {
+	if incident.Clinic != nil {
+		return fields{"sector": "healthcare", "scenario": incident.Scenario, "facts": incident.Clinic,
+			"evidence_ids": incident.Evidence, "mitre": incidentTechniques(incident)}
+	}
 	return fields{"failure_count": incident.Failures, "successful_login": incident.ChainComplete, "privilege_query": incident.ChainComplete,
 		"reputation_simulated": simulatedReputation, "evidence_ids": incident.Evidence, "mitre": allowedTechniques}
 }
 
 func (a *appliance) beginTriage(job *workflow) {
 	incident := job.incident
+	version, prompt := incidentPrompt(incident)
+	reviewVersion, reviewPrompt := incidentChallengePrompt(incident)
 	if incident.Mode == "llm" {
 		job.phase = "awaiting-llm"
 		a.emit("soar.triage_requested", incident.Run, "Solicitação de triagem ao Ollama local com dados normalizados.", fields{
-			"incident": incident.Incident, "provider": "ollama", "prompt_version": promptVersion, "prompt": triagePrompt,
-			"input": triageInput(incident), "raw_logs_sent": false, "challenge_prompt": challengePrompt, "challenge_prompt_version": challengePromptVersion,
+			"incident": incident.Incident, "provider": "ollama", "prompt_version": version, "prompt": prompt,
+			"input": triageInput(incident), "raw_logs_sent": false, "challenge_prompt": reviewPrompt, "challenge_prompt_version": reviewVersion,
 		})
-		time.AfterFunc(45*time.Second, func() {
+		time.AfterFunc(150*time.Second, func() {
 			a.mu.Lock()
 			defer a.mu.Unlock()
 			if job.phase == "awaiting-llm" {
@@ -79,13 +86,22 @@ func (a *appliance) beginTriage(job *workflow) {
 		a.denyTriage(job, reply, "triage_unavailable")
 		return
 	}
-	fixture, _ := json.Marshal(triage{
+	result := triage{
 		Threat: "possivel_abuso_credenciais", Severity: "alta",
 		Reason:   "Falhas seguidas de login aceito e consulta de privilégios para a mesma conta.",
 		Evidence: incident.Evidence, MITRE: allowedTechniques,
 		Impact: "Possível acesso indevido à conta local.", Uncertainty: "A consulta sudo -l não comprova exploração nem escalada.",
 		Recommendations: []string{"avaliar_contencao", "investigar_conta"},
-	})
+	}
+	if config, exists := clinicScenarios[incident.Scenario]; exists {
+		result.Threat, result.Severity, result.Reason, result.MITRE = config.Threat, config.Severity, config.Rationale, config.MITRE
+		result.Impact = "Possível acesso ou operação indevida no sistema clínico fictício."
+		result.Uncertainty = "Os registros descrevem atividade e autorização. Pedido de exportação não prova entrega ou vazamento; confirme titularidade e contexto."
+		if config.Severity != "alta" {
+			result.Recommendations = []string{"investigar_conta", "monitorar"}
+		}
+	}
+	fixture, _ := json.Marshal(result)
 	reply.Output = string(fixture)
 	a.completeTriage(job, reply)
 }
@@ -112,12 +128,13 @@ func (a *appliance) receiveLLM(job *workflow, encoded string) {
 }
 
 func triageAudit(incident alert, reply triageReply) fields {
+	version, prompt := incidentPrompt(incident)
 	provider := "fixture"
 	if incident.Mode == "llm" {
 		provider = "ollama"
 	}
 	return fields{"incident": incident.Incident, "provider": provider, "model": reply.Model, "model_version": reply.Version,
-		"engine_version": reply.Engine, "prompt_version": promptVersion, "prompt": triagePrompt, "input": triageInput(incident),
+		"engine_version": reply.Engine, "prompt_version": version, "prompt": prompt, "input": triageInput(incident),
 		"raw_logs_sent": false, "simulation": incident.Mode != "llm"}
 }
 
@@ -138,17 +155,26 @@ func (a *appliance) completeTriage(job *workflow, reply triageReply) {
 		return
 	}
 	detail := triageAudit(job.incident, reply)
-	detail["severity"], detail["validation"], detail["result"] = result.Severity, "passed", result
+	severity := result.Severity
+	if job.incident.Clinic != nil {
+		severity = clinicSeverity(job.incident)
+		detail["severity_source"], detail["model_suggested_severity"] = "clinical_rule", result.Severity
+		detail["severity_disagreement"] = severity != result.Severity
+		detail["policy_reason"] = fmt.Sprintf("Regra %d aplicada a %d evidências da mesma conta, sessão e serviço. Prioridade operacional: %s.",
+			clinicScenarios[job.incident.Scenario].Rule, len(job.incident.Evidence), severity)
+	}
+	detail["severity"], detail["validation"], detail["result"] = severity, "passed", result
 	a.emit("soar.triaged", job.incident.Run, result.Reason, detail)
 	a.emitChallenge(job.incident, reply)
-	a.applyTriagePolicy(job, result.Severity)
+	a.applyTriagePolicy(job, severity)
 }
 
 func (a *appliance) emitChallenge(incident alert, reply triageReply) {
 	detail := fields{"incident": incident.Incident, "provider": "rules", "evidence_ids": incident.Evidence}
 	if incident.Mode == "llm" {
 		detail["model"], detail["model_version"] = reply.Model, reply.Version
-		detail["prompt"], detail["prompt_version"] = challengePrompt, challengePromptVersion
+		reviewVersion, reviewPrompt := incidentChallengePrompt(incident)
+		detail["prompt"], detail["prompt_version"] = reviewPrompt, reviewVersion
 		if result, valid := validateChallenge([]byte(reply.Challenge), incident); valid {
 			detail["provider"], detail["validation"], detail["result"] = "ollama", "passed", result
 			a.emit("soar.challenged", incident.Run, "Segunda análise do Ollama validada. Resultado consultivo.", detail)
@@ -157,6 +183,17 @@ func (a *appliance) emitChallenge(incident alert, reply triageReply) {
 		detail["model_review"] = "unavailable_or_rejected"
 	}
 	detail["result"] = challenge{"missing_evidence", incident.Evidence, "A cadeia sustenta investigação, mas não confirma comprometimento. Verifique manutenção autorizada e atividade após a consulta de privilégios."}
+	if incident.Clinic != nil {
+		reason := "Confirme a titularidade da sessão, a escala e a autorização. Solicitação de exportação não comprova transferência de dados."
+		verdict := "missing_evidence"
+		if incident.Clinic.ApprovedContext {
+			verdict, reason = "contradiction", "Há autorização vinculada à sessão e ao serviço. Verifique esse registro antes de atribuir o padrão a uma conta roubada."
+		}
+		if incident.Clinic.ExportDenied {
+			reason = "A aplicação negou esta exportação. Investigue a tentativa e a titularidade; o pedido não comprova vazamento."
+		}
+		detail["result"] = challenge{verdict, incident.Evidence, reason}
+	}
 	a.emit("soar.challenged", incident.Run, "Contraprova por regras. Resultado consultivo.", detail)
 }
 
@@ -207,17 +244,21 @@ func uniqueJSONFields(data []byte, count int) bool {
 
 func validateTriage(data []byte, incident alert) (triage, error) {
 	var result triage
+	expectedThreat := "possivel_abuso_credenciais"
+	if config, exists := clinicScenarios[incident.Scenario]; exists {
+		expectedThreat = config.Threat
+	}
 	if len(data) > 6000 || !uniqueJSONFields(data, 8) {
 		return result, errInvalidTriage
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&result) != nil ||
-		(result.Threat != "possivel_abuso_credenciais" && result.Threat != "inconclusivo") || !validSeverity(result.Severity) ||
-		(result.Threat == "inconclusivo" && result.Severity == "alta") ||
+		(result.Threat != expectedThreat && result.Threat != "inconclusivo") || !validSeverity(result.Severity) ||
+		(incident.Clinic == nil && result.Threat == "inconclusivo" && result.Severity == "alta") ||
 		!boundedText(result.Reason, 400) || !boundedText(result.Impact, 400) || !boundedText(result.Uncertainty, 400) ||
 		len(result.Recommendations) == 0 || len(result.Recommendations) > 3 || !slices.Equal(result.Evidence, incident.Evidence) ||
-		!slices.Equal(result.MITRE, allowedTechniques) {
+		!slices.Equal(result.MITRE, incidentTechniques(incident)) {
 		return triage{}, errInvalidTriage
 	}
 	for _, recommendation := range result.Recommendations {

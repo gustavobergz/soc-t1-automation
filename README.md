@@ -1,40 +1,48 @@
-# Autonomous SOC Tier 1
+# SOC Clínica com IA local
 
-Laboratório de SOC para investigar abuso de credenciais, correlacionar evidências e demonstrar contenção com aprovação humana. Os eventos, o enriquecimento e a triagem assistida padrão são simulados. A contenção é aplicada somente ao serviço HTTP de demonstração.
+Laboratório acadêmico de SOC para investigar atividades suspeitas em uma clínica fictícia. A simulação cobre conta médica roubada, exportação indevida, alteração de permissões e um plantão autorizado de comparação. Os dados são inteiramente fictícios. O analista revisa as evidências e decide sobre a contenção.
 
-## Abrir em um clique
+[**Abrir a demonstração**](https://gustavobergz.github.io/soc-t1-automation/)
 
-[**Abrir a demonstração no navegador**](https://gustavobergz.github.io/soc-t1-automation/)
+## Começar
 
-- **Visão geral** reúne os indicadores da base carregada, os incidentes da demonstração e a topologia da rede isolada. Use **Ctrl+K** para buscar em qualquer área.
-- **Investigar logs** abre o explorador com 205.000 eventos sintéticos. Filtre pelo IP `198.51.100.27` para encontrar oito falhas de autenticação, um login aceito e uma consulta de privilégios. Abra o JSON original, selecione as evidências e exporte o caso.
-- **Operação ao vivo** inicia quatro VMs Linux isoladas no navegador. A rodada manual permite escolher as evidências, a severidade e a justificativa. A rodada assistida demonstra a correlação, a aprovação humana, o bloqueio por 45 segundos e a opção de desbloquear.
-- **Método e auditoria** mostra o escopo em relação ao guia, a avaliação reproduzível do detector e o JSON de triagem, aprovação, contenção e reversão.
-- **Análise de incidentes** permite reproduzir a trilha UTC, consultar contraprovas e lacunas, comparar casos encerrados e simular a contenção HTTP. Abra uma rodada, a trilha de exemplo ou um JSONL de auditoria para ver a história com evidências, a assinatura do incidente e o comprovante da triagem.
-- **Ask Your SOC** consulta falhas de SSH por IP e explica a severidade registrada. As respostas usam consultas locais com escopo e referências. O perfil de acesso compara hora e host com logins anteriores da conta na base carregada.
-- **Visão geral** inclui o SOC Pulse, que mostra o risco de 0 a 100 e os fatores que alteraram a pontuação. Na **SOC Arena**, pratique a classificação e a escolha da evidência decisiva em três cenários fictícios.
+- **Análise de incidentes** abre rodadas registradas, replay, história, contraprovas, lacunas e comprovante em JSON.
+- **Investigar logs** carrega 205.000 eventos da clínica. Busque `MED-017`, `REC-004` ou `ENF-009`, selecione evidências individuais e salve um caso.
+- **Operação ao vivo** executa o cenário escolhido nas quatro VMs. Compare triagem manual, resposta simulada e Ollama local.
+- **SOC Arena** apresenta os quatro cenários com classificação e escolha da evidência decisiva.
+- **Método e auditoria** apresenta a política, as métricas e a avaliação controlada do detector.
 
-## Rodar localmente
+O site público usa uma triagem simulada identificada. O modo com modelo real usa Ollama no computador pelo iniciador VirtualBox.
 
-1. Baixe o projeto pelo botão **Code → Download ZIP** e extraia toda a pasta.
-2. Abra **index.html** no Chrome ou Edge. Para usar o explorador, escolha `logs/soc-investigacao-205k.jsonl.gz` em **Carregar base de exemplo**.
-3. Para usar o **VirtualBox no Windows**, tenha VirtualBox e Node.js instalados e abra **INICIAR VIRTUALBOX.cmd**. O iniciador registra as quatro VMs da demo e abre o painel local.
+## Windows com IA local
 
-O [roteiro de oito minutos](LEIA-ME.md) inclui a topologia, o fluxo de aprovação e exemplos de investigação. O [log de validação](logs/soc-demo.jsonl) registra execuções anteriores. Os [componentes de terceiros](THIRD_PARTY_NOTICES.md) estão descritos separadamente.
+1. Baixe o ZIP do repositório e extraia toda a pasta. Tenha VirtualBox e Node.js instalados.
+2. Execute **CONFIGURAR IA LOCAL.cmd**. Ele prepara o Ollama 0.40.16 para CPU, verifica o SHA256 do pacote utilizado e baixa o modelo local `qwen2.5:1.5b`.
+3. Execute **INICIAR COM IA LOCAL.cmd**.
+4. No painel, selecione um cenário e **Assistida · Ollama local**.
 
-## Triagem com um modelo local
+A configuração inicial usa internet. O instalador baixa cerca de 46 MB de componentes CPU da distribuição oficial, utiliza um ZIP temporário de aproximadamente 1,6 GB e baixa cerca de 986 MB de pesos do modelo. Reserve pelo menos 3 GB de espaço livre para essa preparação. Os downloads concluídos ficam disponíveis para reutilização.
 
-O GitHub Pages e a rodada assistida padrão usam uma saída simulada que passa pelo mesmo validador do modelo. Para testar a inferência no VirtualBox, inicie o Ollama em modo local com um modelo já instalado e listado em `ollama list`. Informe a tag exata ao iniciar o painel. Exemplo no PowerShell com a tag do seu modelo instalada previamente:
+O servidor de inferência iniciado pelo projeto usa `127.0.0.1:11434` com recursos de nuvem desativados. O conector envia contagens, indicadores e IDs de evidência. Os arquivos do serviço e os pesos ficam em `%LOCALAPPDATA%\SOC-Tier1`. A entrada e a saída validadas podem ser inspecionadas na triagem em JSON. [Documentação do Ollama](https://docs.ollama.com/faq)
+
+Para executar com triagem simulada, abra **INICIAR VIRTUALBOX.cmd**. O site também executa as VMs pelo v86 no navegador. O laboratório SSH anterior continua selecionável. Para encerrar as VMs criadas pelo projeto, execute `powershell -File .\VirtualBox.ps1 -Mode Stop`.
+
+## Documentação e demonstração
+
+A [documentação da simulação](DOCUMENTACAO_SIMULACAO.md) explica os cenários, o fluxo de dados, as regras, os campos de logs, a IA local, os controles de privacidade, as métricas e um roteiro de apresentação de oito minutos. O [guia rápido](LEIA-ME.md) resume a apresentação.
+
+A contenção suspende uma sessão de teste no serviço HTTP por 45 s, após aprovação. O painel verifica que a sessão legítima da mesma origem continua acessível e permite reversão antecipada. A autenticação, o prontuário e o IAM são reproduções sintéticas. O coletor e o playbook em Go representam os papéis de Wazuh e n8n. A integração com os produtos originais e dados operacionais exige uma etapa própria.
+
+A memória é uma comparação entre casos revisados no navegador. O chat executa consultas estruturadas locais. A triagem e a revisão opcional são as integrações com o LLM. A execução local faz parte dos controles de proteção de dados descritos no documento, e a conformidade de uma implantação real precisa ser avaliada no seu contexto.
+
+A prioridade operacional vem das regras clínicas. O painel apresenta separadamente a severidade sugerida pela IA e destaca divergências. As explicações do modelo são consultivas e devem ser conferidas com os fatos registrados. O comprovante mantém a classificação da regra e a proposta original do modelo.
+
+## Reproduzir os eventos
 
 ```powershell
-$env:SOC_OLLAMA_MODEL = 'qwen2.5:3b'
-.\VirtualBox.ps1
+node lab/generate-clinic.cjs
 ```
 
-Se o iniciador do VirtualBox já estiver aberto, feche-o antes de iniciar com essa configuração. Selecione **Assistida · Ollama local**. O conector usa `127.0.0.1:11434`, exige uma tag local sem variante de nuvem e envia apenas o incidente normalizado. Abra **Ver triagem em JSON** para inspecionar modelo, digest, versão do Ollama, prompt, resultado e validação. Indisponibilidade ou saída rejeitada mantém o serviço acessível. [API e saídas estruturadas do Ollama](https://docs.ollama.com/capabilities/structured-outputs)
+O gerador produz `logs/clinica-investigacao-205k.jsonl.gz`. Para uma cópia sem compressão, use `node lab/generate-clinic.cjs logs/clinica-investigacao-205k.jsonl`. O catálogo compartilhado dos cenários fica em `lab/clinic.json`. A base e os logs anteriores de SSH continuam no repositório.
 
-O **False Positive Challenger** pode fazer uma segunda chamada ao modelo local. Ela recebe os mesmos campos normalizados e a classificação inicial em valores predefinidos. Quando a segunda saída não é válida ou está indisponível, a revisão usa regras locais. A contraprova é consultiva. A decisão de contenção continua com o analista.
-
-## Base sintética
-
-O arquivo `logs/soc-investigacao-205k.jsonl.gz` contém 205.000 objetos JSON, um por linha. O explorador lê o gzip diretamente. Para gerar uma cópia sem compressão, use `node lab/generate-logs.cjs`. Para reproduzir a versão compactada, use `node lab/generate-logs.cjs logs/soc-investigacao-205k.jsonl.gz`.
+[Componentes e licenças de terceiros](THIRD_PARTY_NOTICES.md)

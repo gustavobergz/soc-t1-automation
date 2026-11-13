@@ -35,29 +35,35 @@ const (
 type fields map[string]any
 
 type signal struct {
-	Run    string    `json:"run"`
-	Mode   string    `json:"mode"`
-	Step   int       `json:"step"`
-	Kind   string    `json:"kind"`
-	Source string    `json:"source_ip,omitempty"`
-	User   string    `json:"user,omitempty"`
-	Host   string    `json:"host,omitempty"`
-	Raw    string    `json:"raw,omitempty"`
-	ID     string    `json:"event_id,omitempty"`
-	At     time.Time `json:"timestamp"`
-	Result string    `json:"auth_result,omitempty"`
+	Run      string      `json:"run"`
+	Mode     string      `json:"mode"`
+	Step     int         `json:"step"`
+	Kind     string      `json:"kind"`
+	Source   string      `json:"source_ip,omitempty"`
+	User     string      `json:"user,omitempty"`
+	Host     string      `json:"host,omitempty"`
+	Raw      string      `json:"raw,omitempty"`
+	ID       string      `json:"event_id,omitempty"`
+	At       time.Time   `json:"timestamp"`
+	Result   string      `json:"auth_result,omitempty"`
+	Scenario string      `json:"scenario,omitempty"`
+	Session  string      `json:"session_id,omitempty"`
+	Clinical *clinicStep `json:"clinical,omitempty"`
 }
 
 type alert struct {
-	Run           string   `json:"run"`
-	Incident      string   `json:"incident"`
-	Source        string   `json:"source_ip"`
-	User          string   `json:"user"`
-	Host          string   `json:"host"`
-	Failures      int      `json:"failures"`
-	Mode          string   `json:"mode"`
-	Evidence      []string `json:"evidence_ids"`
-	ChainComplete bool     `json:"chain_complete"`
+	Run           string         `json:"run"`
+	Incident      string         `json:"incident"`
+	Source        string         `json:"source_ip"`
+	User          string         `json:"user"`
+	Host          string         `json:"host"`
+	Failures      int            `json:"failures"`
+	Mode          string         `json:"mode"`
+	Evidence      []string       `json:"evidence_ids"`
+	ChainComplete bool           `json:"chain_complete"`
+	Scenario      string         `json:"scenario,omitempty"`
+	Session       string         `json:"session_id,omitempty"`
+	Clinic        *clinicSummary `json:"clinic,omitempty"`
 }
 
 type caseState struct {
@@ -69,10 +75,11 @@ type appliance struct {
 	role string
 	mu   sync.Mutex
 
-	activeRun string
-	blocked   *block
-	cases     map[string]*caseState
-	incidents map[string]*workflow
+	activeRun      string
+	activeScenario string
+	blocked        *block
+	cases          map[string]*caseState
+	incidents      map[string]*workflow
 }
 
 var (
@@ -157,10 +164,20 @@ func (a *appliance) attempt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	event.Source, event.User, event.Host = remoteIP(r), account, endpoint
+	if config, exists := clinicScenarios[a.activeScenario]; exists {
+		if event.Kind != "ssh.probe" || event.Session == "" {
+			event.Session = config.Session
+		}
+		if event.Session != config.Session && event.Session != "SESSAO-CONTROLE" {
+			http.Error(w, "sessao desconhecida", http.StatusForbidden)
+			return
+		}
+	}
 	if a.blocked != nil && !time.Now().Before(a.blocked.expires) {
 		a.releaseBlock("expiration", "policy")
 	}
-	if a.blocked != nil && a.blocked.request.Source == event.Source {
+	if a.blocked != nil && a.blocked.request.Source == event.Source &&
+		(a.blocked.request.Session == "" || a.blocked.request.Session == event.Session) {
 		a.emit("endpoint.denied", event.Run, "O serviço de demonstração recusou a origem contida.", fields{"source_ip": event.Source, "http_status": 403})
 		http.Error(w, "origem contida", http.StatusForbidden)
 		return
@@ -171,18 +188,25 @@ func (a *appliance) attempt(w http.ResponseWriter, r *http.Request) {
 	}
 	event.ID = fmt.Sprintf("%s-%02d", event.Run, event.Step)
 	event.At = time.Now().UTC()
-	switch event.Kind {
-	case "ssh.failed":
-		event.Result = "failure"
-		event.Raw = fmt.Sprintf("%s sshd[%d]: Failed password for %s from %s port 51000 ssh2", endpoint, 1800+event.Step, account, event.Source)
-	case "ssh.accepted":
-		event.Result = "success"
-		event.Raw = fmt.Sprintf("%s sshd[1820]: Accepted password for %s from %s port 51000 ssh2", endpoint, account, event.Source)
-	case "sudo.attempt":
-		event.Raw = fmt.Sprintf("%s sudo[1821]: %s : TTY=pts/0 ; USER=root ; COMMAND=/usr/bin/sudo -l", endpoint, account)
-	default:
-		http.Error(w, "tipo invalido", http.StatusBadRequest)
-		return
+	if a.activeScenario != "" {
+		if !a.prepareClinic(&event) {
+			http.Error(w, "passo clinico invalido", http.StatusBadRequest)
+			return
+		}
+	} else {
+		switch event.Kind {
+		case "ssh.failed":
+			event.Result = "failure"
+			event.Raw = fmt.Sprintf("%s sshd[%d]: Failed password for %s from %s port 51000 ssh2", endpoint, 1800+event.Step, account, event.Source)
+		case "ssh.accepted":
+			event.Result = "success"
+			event.Raw = fmt.Sprintf("%s sshd[1820]: Accepted password for %s from %s port 51000 ssh2", endpoint, account, event.Source)
+		case "sudo.attempt":
+			event.Raw = fmt.Sprintf("%s sudo[1821]: %s : TTY=pts/0 ; USER=root ; COMMAND=/usr/bin/sudo -l", endpoint, account)
+		default:
+			http.Error(w, "tipo invalido", http.StatusBadRequest)
+			return
+		}
 	}
 	a.emit("endpoint.observed", event.Run, event.Raw, eventFields(event))
 	if err := send(managerIP, "/event", event); err != nil {
@@ -194,11 +218,15 @@ func (a *appliance) attempt(w http.ResponseWriter, r *http.Request) {
 }
 
 func eventFields(event signal) fields {
-	return fields{
+	result := fields{
 		"event_id": event.ID, "event_time": event.At, "event_type": event.Kind,
 		"kind": event.Kind, "step": event.Step, "source_ip": event.Source, "username": event.User,
 		"user": event.User, "host": event.Host, "raw": event.Raw, "mode": event.Mode, "auth_result": event.Result,
 	}
+	if event.Scenario != "" {
+		result["scenario"], result["sector"], result["session_id"], result["clinical"] = event.Scenario, "healthcare", event.Session, event.Clinical
+	}
+	return result
 }
 
 func (a *appliance) collect(w http.ResponseWriter, r *http.Request) {
@@ -209,6 +237,10 @@ func (a *appliance) collect(w http.ResponseWriter, r *http.Request) {
 	if !runID.MatchString(event.Run) || event.Step < 1 || event.ID != fmt.Sprintf("%s-%02d", event.Run, event.Step) ||
 		event.At.IsZero() || event.At.After(time.Now().Add(5*time.Second)) || time.Since(event.At) > maxEventAge {
 		http.Error(w, "identidade ou horario do evento invalido", http.StatusBadRequest)
+		return
+	}
+	if event.Scenario != "" && !validClinicSignal(event) {
+		http.Error(w, "contexto clinico invalido", http.StatusBadRequest)
 		return
 	}
 	a.collectSignal(event)
@@ -230,7 +262,7 @@ func (a *appliance) collectSignal(event signal) {
 	}
 	state.signals = append(state.signals, event)
 	a.emit("siem.raw", event.Run, event.Raw, eventFields(event))
-	if event.Mode != "manual" && event.Kind == "sudo.attempt" && !state.dispatched {
+	if event.Mode != "manual" && (event.Kind == "sudo.attempt" || event.Scenario != "") && !state.dispatched {
 		incident := summarize(state.signals)
 		if incident.ChainComplete {
 			a.dispatch(state, incident, "siem.correlated")
@@ -239,10 +271,13 @@ func (a *appliance) collectSignal(event signal) {
 }
 
 func correlationKey(event signal) string {
-	return strings.Join([]string{event.Run, event.Host, event.Source, event.User}, "/")
+	return strings.Join([]string{event.Run, event.Host, event.Source, event.User, event.Session}, "/")
 }
 
 func summarize(signals []signal) alert {
+	if signals[0].Scenario != "" {
+		return summarizeClinic(signals)
+	}
 	first := signals[0]
 	incident := alert{Run: first.Run, Incident: "INC-" + first.Run, Source: first.Source, User: first.User, Host: first.Host, Mode: first.Mode}
 	var failures []time.Time
@@ -301,6 +336,15 @@ func (a *appliance) dispatch(state *caseState, incident alert, event string) {
 		detail["failure_window_seconds"], detail["login_window_seconds"], detail["post_login_window_seconds"] = int(failureWindow.Seconds()), int(loginWindow.Seconds()), int(postLoginWindow.Seconds())
 		message = "Identificada sequência de falhas de SSH, login aceito e consulta sudo -l."
 	}
+	if incident.Clinic != nil {
+		config := clinicScenarios[incident.Scenario]
+		detail["scenario"], detail["sector"], detail["session_id"], detail["clinic"] = incident.Scenario, "healthcare", incident.Session, incident.Clinic
+		detail["rule_id"], detail["window_seconds"] = config.Rule, int(failureWindow.Seconds())
+		delete(detail, "failure_window_seconds")
+		delete(detail, "login_window_seconds")
+		delete(detail, "post_login_window_seconds")
+		message = "Atividade clínica correlacionada na mesma conta, sessão e serviço: " + config.Title + "."
+	}
 	a.emit(event, incident.Run, message, detail)
 	go func() {
 		if err := send(soarIP, "/playbook", incident); err != nil {
@@ -310,6 +354,7 @@ func (a *appliance) dispatch(state *caseState, incident alert, event string) {
 }
 
 func (a *appliance) runAttack(mode, run string) error {
+	a.activeScenario = ""
 	a.emit("attack.started", run, "Início da reprodução de tentativas contra o serviço de demonstração.", fields{"mode": mode, "source_ip": attackIP, "target_ip": victimIP})
 	for step := 1; step <= 10; step++ {
 		kind := "ssh.failed"
@@ -330,13 +375,20 @@ func (a *appliance) runAttack(mode, run string) error {
 }
 
 func (a *appliance) probe(run, phase string) {
-	code, err := post(victimIP, "/attempt", signal{Run: run, Kind: "ssh.probe"})
+	request := signal{Run: run, Kind: "ssh.probe"}
+	if config, exists := clinicScenarios[a.activeScenario]; exists {
+		request.Session = config.Session
+	}
+	if phase == "legitimate" {
+		request.Session = "SESSAO-CONTROLE"
+	}
+	code, err := post(victimIP, "/attempt", request)
 	if err != nil {
 		a.fail(run, err)
 		return
 	}
 	a.emit("attack.probe", run, fmt.Sprintf("Sonda da origem atacante recebeu HTTP %d.", code),
-		fields{"http_status": code, "phase": phase, "source_ip": attackIP, "target_ip": victimIP})
+		fields{"http_status": code, "phase": phase, "source_ip": attackIP, "target_ip": victimIP, "session_id": request.Session})
 }
 
 func (a *appliance) command(line string) {
@@ -349,12 +401,23 @@ func (a *appliance) command(line string) {
 		a.evaluateDetector()
 		return
 	}
+	if len(args) == 1 && args[0] == "benchmark-clinic" && a.role == "manager" {
+		a.evaluateClinic()
+		return
+	}
 	if len(args) < 2 || !runID.MatchString(args[1]) {
 		return
 	}
 	run := args[1]
 	switch {
 	case a.role == "victim" && args[0] == "prepare":
+		scenario := ""
+		if len(args) > 2 {
+			if _, exists := clinicScenarios[args[2]]; !exists {
+				return
+			}
+			scenario = args[2]
+		}
 		a.mu.Lock()
 		defer a.mu.Unlock()
 		if a.blocked != nil && time.Now().Before(a.blocked.expires) {
@@ -365,13 +428,23 @@ func (a *appliance) command(line string) {
 			a.releaseBlock("expiration", "policy")
 		}
 		a.activeRun = run
+		a.activeScenario = scenario
 		a.emit("endpoint.prepared", run, "Serviço de demonstração liberado para a nova rodada.", nil)
-	case a.role == "attacker" && args[0] == "run" && len(args) == 3:
+	case a.role == "attacker" && args[0] == "run" && (len(args) == 3 || len(args) == 4):
 		mode := args[2]
 		if mode != "manual" && mode != "auto" && mode != "failure" && mode != "llm" {
 			return
 		}
-		if err := a.runAttack(mode, run); err != nil {
+		var err error
+		if len(args) == 4 {
+			if _, exists := clinicScenarios[args[3]]; !exists {
+				return
+			}
+			err = a.runClinic(mode, run, args[3])
+		} else {
+			err = a.runAttack(mode, run)
+		}
+		if err != nil {
 			a.fail(run, err)
 		}
 		a.emit("attack.finished", run, "Reprodução concluída.", nil)

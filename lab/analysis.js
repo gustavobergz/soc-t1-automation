@@ -8,12 +8,7 @@ globalThis.SocAnalysis = (() => {
   const memory = new Map();
   const resolutionLabels = SocReview.dispositions;
   const verdictLabels = { contradiction: 'Possível contradição', missing_evidence: 'Evidência insuficiente', no_clear_contradiction: 'Sem contradição clara' };
-  const referenceSequence = ['failure', 'login', 'privilege'];
-  const demonstrations = [
-    { id: 'DEMO-117', title: 'Rotina autorizada de manutenção', resolution: 'falso_positivo', context: { sequence: referenceSequence, failures: 6, host: 'endpoint-01', user: 'soclab', mitre: ['T1110.001', 'T1078.003'] } },
-    { id: 'DEMO-104', title: 'Validação autorizada de credencial', resolution: 'falso_positivo', context: { sequence: referenceSequence, failures: 8, host: 'endpoint-02', user: 'ops_demo', mitre: ['T1110.001'] } },
-    { id: 'DEMO-092', title: 'Abuso confirmado após revisão', resolution: 'confirmado', context: { sequence: referenceSequence, failures: 7, host: 'endpoint-03', user: 'svc_demo', mitre: ['T1110.001', 'T1078.003'] } },
-  ];
+  const demonstrations = [];
   let selected = '';
   let position = 0;
   let timer;
@@ -66,6 +61,7 @@ globalThis.SocAnalysis = (() => {
       if (source === 'session') updateRuns();
     }
     const run = runs.get(event.run);
+    if (event.scenario) run.title = `${SocClinic.get(event.scenario)?.title || event.scenario} · ${run.id}`;
     const key = JSON.stringify([event.event, event.timestamp, event.vm, event.event_id]);
     if (run.keys.has(key) || run.events.length >= 1200) return;
     run.keys.add(key);
@@ -122,10 +118,11 @@ globalThis.SocAnalysis = (() => {
       return;
     }
     const eligible = preview.predicted_source_status === 403;
-    el('shadow-result').textContent = eligible ? 'Previsão · contenção limitada ao HTTP da vítima.' : 'Previsão · política não aplicaria contenção.';
+    el('shadow-result').textContent = eligible ? 'Previsão · contenção limitada à sessão de teste no serviço HTTP.' : 'Previsão · política não aplicaria contenção.';
     fillList('shadow-items', eligible ? [
       `${preview.source_ip} → ${preview.target_ip}: HTTP 403 previsto por ${preview.ttl_seconds} s.`,
       `Sonda de controle: HTTP ${preview.predicted_control_status} previsto.`,
+      ...(preview.session_id ? [`Sessão afetada: ${preview.session_id}. Outras sessões permanecem elegíveis para acesso.`] : []),
       'A simulação não envia tráfego, não muda regras e não aprova o bloqueio.',
     ] : [preview.reason, 'A simulação não alterou o serviço.']);
   }
@@ -162,6 +159,9 @@ globalThis.SocAnalysis = (() => {
     el('receipt-status').textContent = decision
       ? `${SocLogs.severity(decision.severity)} · ${decision.rule_id ? 'Regra ' + decision.rule_id : 'Triagem sem regra automática registrada'} · ${decision.provider} · ${decision.evidence_ids.length} evidências. ${decision.reason}`
       : 'A rodada ainda não tem triagem registrada.';
+    if (decision?.model_suggested_severity) {
+      el('receipt-status').textContent += ` Sugestão ${decision.provider === 'fixture' ? 'simulada' : 'da IA'}: ${SocLogs.severity(decision.model_suggested_severity)}${decision.severity_disagreement ? ' · divergência para revisão.' : '.'}`;
+    }
     fillList('receipt-actions', decision?.recommendations.map((action) => Object.hasOwn(recommendationLabels, action) ? recommendationLabels[action] : action) || []);
     const evidence = new Map(events.filter((event) => typeof event.event_id === 'string').map((event) => [event.event_id, event]));
     el('receipt-evidence').replaceChildren(...(decision?.evidence_ids || []).slice(0, 200).map((id) => {
@@ -222,6 +222,9 @@ globalThis.SocAnalysis = (() => {
       fillList('fingerprint-items', []);
     }
     const context = SocReview.facts(events);
+    const clinicalAudit = events.findLast((event) => event.clinic);
+    el('analysis-facts').hidden = !clinicalAudit;
+    el('analysis-facts').textContent = clinicalAudit ? `Fatos registrados · ${SocClinic.describe(clinicalAudit.clinic)}.` : '';
     const shadowAudit = events.findLast((event) => event.event === 'soar.shadow_preview' && event.applied === false);
     if (shadowAudit && !preview && typeof shadowAudit.source_ip === 'string' && typeof shadowAudit.target_ip === 'string') preview = shadowAudit;
     review = events.findLast((event) => event.event === 'soar.challenged');
@@ -394,7 +397,15 @@ globalThis.SocAnalysis = (() => {
     if (location.hash === '#analise') render(false);
     else { stop(); renderReplay(); }
   });
-  SocDashboard.sampleRecords.then((events) => {
+  Promise.all([SocDashboard.sampleRecords, SocClinic.ready]).then(([events, catalog]) => {
+    for (const scenario of catalog) {
+      const records = scenario.steps.map((step, index) => ({
+        event: step.kind, timestamp: new Date(Date.UTC(2026, 10, 12, 6, 0, index * 12)).toISOString(),
+        clinical: step, source_ip: '10.77.0.30', username: scenario.user, host: scenario.host,
+        scenario: scenario.id, session_id: scenario.session, event_id: `REF-${scenario.id}-${index}`,
+      }));
+      demonstrations.push({ id: `REF-${scenario.id}`, title: scenario.title, resolution: scenario.answer, context: SocReview.facts(records, scenario.severity) });
+    }
     for (const event of events) ingest(event, 'sample');
     updateRuns();
     if (!selected) el('analysis-status').textContent = 'Execute uma rodada ou importe a trilha JSONL para começar.';
@@ -419,6 +430,13 @@ globalThis.SocAnalysis = (() => {
         ? `${receipt.run} · ${SocLogs.severity(receipt.severity)}. ${receipt.reason}`
         : 'Selecione uma rodada com triagem registrada para consultar a justificativa.';
       if (receipt) item.append(link('Ver evidências no comprovante', () => SocLogs.showDetails(receipt)));
+    } else if (/prontuari|exporta|permiss/.test(text)) {
+      const metric = /exporta/.test(text) ? 'exports' : /permiss/.test(text) ? 'permissions' : 'reads';
+      const data = await SocLogs.archiveAnalysis({ kind: 'clinic_activity', metric });
+      if (!data) { response.textContent = 'Abra a base em Investigar logs e envie a pergunta novamente.'; return; }
+      const labels = { reads: 'consultas a prontuários fictícios', exports: 'eventos de solicitação ou recusa de exportação', permissions: 'eventos de permissões' };
+      response.textContent = `${data.result.total.toLocaleString('pt-BR')} ${labels[metric]} na base carregada · ${data.source}. Solicitação não comprova entrega de dados.`;
+      for (const group of data.result.top) item.append(link(`${group.key} · ${group.count} · ver evidência`, () => SocLogs.showDetails(group.example)));
     } else if (/\bips?\b/.test(text) && /falh|tentativ|login/.test(text)) {
       const day = text.match(/\b\d{4}-\d{2}-\d{2}\b/)?.[0] || (/\bhoje\b/.test(text) ? new Date().toISOString().slice(0, 10) : '');
       if (day && (!Number.isFinite(Date.parse(day)) || new Date(day).toISOString().slice(0, 10) !== day)) {
@@ -430,11 +448,11 @@ globalThis.SocAnalysis = (() => {
         response.textContent = 'Abra a base em Investigar logs e envie a pergunta novamente.';
         return;
       }
-      response.textContent = `${data.result.day || 'Sem data'} UTC · ${data.result.total.toLocaleString('pt-BR')} falhas de SSH com IP de origem · ${data.source}.`;
+      response.textContent = `${data.result.day || 'Sem data'} UTC · ${data.result.total.toLocaleString('pt-BR')} falhas de autenticação com IP de origem · ${data.source}.`;
       for (const origin of data.result.top) {
         item.append(link(`${origin.ip} · ${origin.count} · ver evento de exemplo`, () => SocLogs.showDetails(origin.example)));
       }
-    } else response.textContent = 'Posso consultar falhas de SSH por IP em uma data ou explicar a severidade da rodada selecionada.';
+    } else response.textContent = 'Posso consultar prontuários por conta, eventos de exportação, permissões, falhas de autenticação por IP e a severidade da rodada.';
     history.scrollTop = history.scrollHeight;
   }
 
