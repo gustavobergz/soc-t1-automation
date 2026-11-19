@@ -1,5 +1,7 @@
 # SOC Clínica com IA local
 
+Em **Método e auditoria**, clique **Conferir números do TCC** para recalcular o acervo original. As novas rodadas ficam separadas desse histórico. Para executar com Ollama local e registro em arquivo, use `INICIAR COM IA LOCAL.cmd` e acesse `http://127.0.0.1:8771/`.
+
 Laboratório acadêmico de SOC para investigar atividades suspeitas em uma clínica fictícia. A simulação cobre conta médica roubada, exportação indevida, alteração de permissões e um plantão autorizado de comparação. Os dados são inteiramente fictícios. O analista revisa as evidências e decide sobre a contenção.
 
 [**Abrir a demonstração**](https://gustavobergz.github.io/soc-t1-automation/)
@@ -48,3 +50,13 @@ node lab/generate-clinic.cjs
 O gerador produz `logs/clinica-investigacao-205k.jsonl.gz`. Para uma cópia sem compressão, use `node lab/generate-clinic.cjs logs/clinica-investigacao-205k.jsonl`. O catálogo compartilhado dos cenários fica em `lab/clinic.json`. A base e os logs anteriores de SSH continuam no repositório.
 
 [Componentes e licenças de terceiros](THIRD_PARTY_NOTICES.md)
+
+## Métricas e registros das execuções
+
+As métricas distinguem manual, assistida simulada e assistida Ollama. O MTTR inclui somente contenções verificadas: aprovação vinculada, sessão suspeita com HTTP 403 e sessões legítima e de controle com HTTP 204. Ausência de contenção permanece sem valor. Os grupos da demonstração não comprovam ganho de produtividade humana.
+
+O painel histórico confere o SHA256 de `logs/clinica-demo.jsonl` e recalcula as 12 rodadas originais, preservando suas amostras e valores. As execuções novas não alteram esse arquivo.
+
+No iniciador VirtualBox, a disponibilidade da IA é consultada no serviço Ollama antes de habilitar a triagem real. O diário de cada sessão fica em `logs/novas-execucoes/sessao-<id>.jsonl`, com sequência, versões e encadeamento de hashes. Essa pasta é local e não entra no Git. O encadeamento permite conferir consistência, mas não substitui autenticação individual ou auditoria imutável. A opção **Exportar JSONL** continua disponível no painel.
+
+O campo **Tipo de execução** distingue demonstrações de testes técnicos automatizados. Esses registros não constituem um estudo comparativo com participantes humanos.

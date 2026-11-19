@@ -5,3 +5,7 @@
 /.env.*
 __pycache__/
 *.pyc
+/output/
+/tmp/
+/logs/novas-execucoes/
+/docs/PREFERENCIAS_E_OBJETIVOS_DO_USUARIO.md

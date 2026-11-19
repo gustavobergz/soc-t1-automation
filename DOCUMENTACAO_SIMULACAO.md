@@ -125,7 +125,7 @@ Severidade alta e sequência completa permitem solicitar aprovação somente qua
 
 Cada decisão guarda ator fictício `analista-demo`, ação, horário, evidências e ID de aprovação. A triagem registra provedor, modelo, digest, prompt e resultado validado. O Decision Receipt reúne essas informações em JSON exportável. O laboratório demonstra rastreabilidade. A identificação do operador usa um personagem fixo do exercício.
 
-MTTR é a média do intervalo entre a identificação do incidente e a aplicação da contenção, incluindo a espera de aprovação. Só entram rodadas com contenção aplicada, separadas entre manual e assistida. Detecção, triagem e aprovação também aparecem separadamente. A taxa de automação mede triagens assistidas válidas entre rodadas assistidas que chegaram à triagem. A aprovação continua humana.
+MTTR é a média do intervalo entre a identificação do incidente e a aplicação da contenção, incluindo a espera de aprovação. Só entram rodadas com contenção aplicada, separadas entre manual, assistida simulada e assistida Ollama. Detecção, triagem e aprovação também aparecem separadamente. A taxa de automação mede triagens assistidas válidas entre rodadas assistidas que chegaram à triagem. A aprovação continua humana.
 
 O botão **Avaliar detector** executa oito casos controlados da clínica, incluindo os três incidentes, o plantão autorizado, login comum, telemetria ausente, sessões diferentes e atividade fora da janela. O painel informa VP, VN, FP, FN, FPR e FNR. O resultado mede o detector antes da revisão contextual. Essa amostra pequena permite reproduzir comportamentos e limites, e a precisão em produção requer uma avaliação específica.
 

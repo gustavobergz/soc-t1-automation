@@ -115,4 +115,16 @@ async function triage(event) {
   }
 }
 
-module.exports = { model, triage };
+async function health() {
+  if (!model) return { status: 'not_configured', ready: false, model: null };
+  try {
+    const signal = AbortSignal.timeout(3000);
+    const [catalog, engine] = await Promise.all([call('/api/tags', signal), call('/api/version', signal)]);
+    const installed = catalog.models?.find((item) => item.name === model && item.size > 0 && !item.remote_model && !item.remote_host);
+    const ready = Boolean(installed && /^[a-f0-9]{64}$/i.test(installed.digest));
+    return { status: ready ? 'ready' : 'model_missing', ready, model, engine_version: engine.version,
+      model_version: ready ? installed.digest : null, local_only: true };
+  } catch { return { status: 'unavailable', ready: false, model, local_only: true }; }
+}
+
+module.exports = { model, triage, health };

@@ -26,14 +26,14 @@ function status(message, error = false) {
 function updateActions() {
   const online = Boolean(lab && ready.size === 4);
   const phase = current?.phase;
-  for (const id of ['manual', 'auto', 'failure', 'llm']) $(id).disabled = !online || (phase && phase !== 'done');
+  for (const id of ['manual', 'auto', 'failure', 'llm']) $(id).disabled = !online || Boolean(phase && phase !== 'done') || (id === 'llm' && !llmConfigured);
   $('clinic-scenario').disabled = Boolean(phase && phase !== 'done');
-  $('llm').hidden = !llmConfigured;
+  $('llm').hidden = !virtualBox;
   $('benchmark').disabled = !lab || !ready.has('manager');
   for (const [id, show] of Object.entries({
     'manual-detect': phase === 'manual-detect', 'manual-triage': phase === 'manual-triage',
     approve: phase === 'pending', reject: phase === 'pending',
-    rollback: phase === 'blocked' && (current.verified || current.error),
+    rollback: phase === 'blocked' && (SocMetrics.containmentVerified(current) || current.error),
   })) {
     $(id).hidden = !show;
     if (id !== 'manual-triage') $(id).disabled = !online;
@@ -135,8 +135,7 @@ function showEvents() {
 }
 
 function elapsed(from, to) {
-  if (from === undefined || to === undefined) return null;
-  return Math.max(0, Math.round(to - from));
+  return SocMetrics.interval(from, to);
 }
 
 function metrics() {
@@ -150,18 +149,17 @@ function metrics() {
 function showMetrics() {
   if (current.mode === 'failure') return;
   const result = metrics();
-  const cells = $(`metrics-${current.mode === 'llm' ? 'auto' : current.mode}`).querySelectorAll('td');
+  const cells = $(`metrics-${current.mode}`).querySelectorAll('td');
   Object.values(result).forEach((value, index) => {
     cells[index].textContent = value === null ? '—' : index < 2 ? String(value) : `${seconds.format(value / 1000)} s`;
   });
 }
 
 function showSessionMetrics() {
-  const measured = records.filter((event) => event.event === 'panel.metrics' && event.response_ms !== null);
-  for (const [mode, label] of [['manual', 'manual'], ['auto', 'assistido']]) {
-    const values = measured.filter((event) => mode === 'manual' ? event.mode === 'manual' : ['auto', 'llm'].includes(event.mode));
-    const mean = values.length ? values.reduce((sum, event) => sum + event.response_ms, 0) / values.length : null;
-    $(`mttr-${mode}`).textContent = `MTTR ${label} ${mean === null ? '—' : `${seconds.format(mean / 1000)} s (n=${values.length})`}`;
+  const grouped = SocMetrics.containmentMeans(records);
+  for (const [mode, label] of [['manual', 'manual'], ['auto', 'simulado'], ['llm', 'Ollama local']]) {
+    const { meanMs, count } = grouped[mode];
+    $(`mttr-${mode}`).textContent = `MTTR ${label} ${meanMs === null ? '— (nenhuma contenção medida nesta sessão)' : `${seconds.format(meanMs / 1000)} s (n=${count})`}`;
   }
   const automated = [...automation.values()].filter(Boolean).length;
   $('automation-rate').textContent = `Automação elegível ${automation.size ? `${percentage.format(automated / automation.size)} (${automated}/${automation.size})` : '—'}`;
@@ -170,16 +168,36 @@ function showSessionMetrics() {
 function recordMetrics(outcome) {
   if (current.measured) return;
   current.measured = true;
-  records.push({ timestamp: new Date().toISOString(), vm: 'panel', event: 'panel.metrics', run: current.id, mode: current.mode,
+  recordPanel({ timestamp: new Date().toISOString(), vm: 'panel', event: 'panel.metrics', run: current.id, mode: current.mode,
     synthetic: true, message: 'Métricas observadas no painel para esta rodada.', outcome, ...metrics(),
+    scenario: current.scenario, execution_kind: current.executionKind, human_comparative_study: false,
+    clock: { type: 'browser_monotonic', time_origin_ms: performance.timeOrigin, marks_ms: { ...current.marks },
+      created_utc: current.createdUtc, clock_quality: Object.values(metrics()).some((value) => value === null) ? 'some_stages_absent' : 'complete' },
+    runtime: SocLocalRuntime.capabilities?.provenance || { version: 'tcc-validacao-20261119', transport: 'v86' },
+    triage_provider: current.triageAudit?.provider || (current.mode === 'manual' ? 'manual' : null),
+    model: current.triageAudit?.model || null, model_version: current.triageAudit?.model_version || null,
+    engine_version: current.triageAudit?.engine_version || null,
+    containment_verification: { approved: Boolean(current.approvalId), approval_matches: current.approvalId === current.blockApprovalId,
+      suspect_403: Boolean(current.verified), legitimate_204: Boolean(current.legitimate), control_204: Boolean(current.control) },
     automation_eligible: automation.has(current.id), automatic_triage: automation.get(current.id) === true });
   showSessionMetrics();
+}
+
+function recordPanel(event) {
+  records.push(event);
+  SocLocalRuntime.ingest(event);
+  globalThis.SocAnalysis?.ingest(event);
+  globalThis.SocValidation?.ingest(event);
 }
 
 function finish(message, outcome) {
   clearTimeout(timeout);
   current.phase = 'done';
   recordMetrics(outcome);
+  recordPanel({ timestamp: new Date().toISOString(), vm: 'panel', event: 'panel.run_finished', run: current.id,
+    mode: current.mode, scenario: current.scenario, outcome, execution_kind: current.executionKind,
+    monotonic_ms: performance.now(), released: current.released || null, synthetic: true, message });
+  SocLocalRuntime.flush();
   status(`${current.id} · ${message}`, outcome === 'error');
   showEvents();
   updateActions();
@@ -222,13 +240,13 @@ function probe(phase) {
 }
 
 function checkContained() {
-  if (current.verified && current.notified) {
+  if (SocMetrics.containmentVerified(current) && current.notified) {
     clearTimeout(timeout);
     recordMetrics('contained');
-    status(`${current.id} · Bloqueio verificado. Desbloqueie agora ou aguarde a expiração.`);
+    status(`${current.id} · Aprovação e sondas verificadas: suspeita 403, legítima 204 e controle 204. Reverta ou aguarde a expiração.`);
   }
   if (current.verified) {
-    setStep('contain', `${current.ttl} s de bloqueio · atacante HTTP 403${current.control ? ' · controle HTTP 204' : ''}.`);
+    setStep('contain', `${current.ttl} s de bloqueio · suspeita HTTP 403${current.legitimate ? ' · legítima HTTP 204' : ''}${current.control ? ' · controle HTTP 204' : ''}.`);
   }
 }
 
@@ -254,6 +272,7 @@ function checkProbe(event) {
     case 'legitimate':
       current.legitimate = true;
       setStep('contain', `Sessão suspeita HTTP 403 · sessão legítima HTTP 204 · prazo ${current.ttl} s.`);
+      checkContained();
       break;
     case 'released':
       setStep('contain', `${current.released === 'rollback' ? 'Desbloqueio manual' : 'Expiração automática'} verificado · atacante HTTP 204.`);
@@ -274,6 +293,8 @@ function checkProbe(event) {
 }
 
 function onEvent(event) {
+  event.received_panel_monotonic_ms = performance.now();
+  event.received_panel_utc = new Date().toISOString();
   records.push(event);
   globalThis.SocAnalysis?.ingest(event);
   globalThis.SocDashboard?.ingest(event);
@@ -384,6 +405,7 @@ function onEvent(event) {
       break;
     case 'soar.approval_requested':
       current.ttl = event.ttl_seconds;
+      current.requestedApprovalId = event.approval_id;
       current.marks.pending = now;
       probe('pending');
       break;
@@ -395,7 +417,9 @@ function onEvent(event) {
     }
     case 'soar.approval_granted':
       current.marks.approved = now;
+      current.approvalId = event.approval_id;
       setStep('approve-step', `${event.actor} aprovou às ${utcTime(event.timestamp)} com ${event.evidence_ids.length} evidências.`);
+      checkContained();
       break;
     case 'soar.approval_rejected':
       setStep('approve-step', `${event.actor} rejeitou a contenção.`);
@@ -408,6 +432,7 @@ function onEvent(event) {
       break;
     case 'endpoint.block_applied':
       current.phase = 'blocked';
+      current.blockApprovalId = event.approval_id;
       current.marks.blocked = now;
       $('block-deadline').hidden = false;
       $('block-deadline').textContent = `Prazo de ${event.ttl_seconds} s · expiração prevista às ${utcTime(event.expires_at)}.`;
@@ -458,7 +483,12 @@ function selectFilter(value) {
 }
 
 function run(mode) {
-  current = { id: `SOC-${Date.now()}${++sequence}`, mode, scenario: $('clinic-scenario').value, phase: 'collecting', rawCount: 0, marks: {}, evidence: new Set() };
+  if (mode === 'llm' && !llmConfigured) { status('O Ollama local ainda não está pronto. Confira a configuração da IA.', true); return; }
+  current = { id: `SOC-${Date.now()}${++sequence}`, mode, scenario: $('clinic-scenario').value, phase: 'collecting', rawCount: 0, marks: {}, evidence: new Set(),
+    executionKind: $('execution-kind')?.value || 'demonstration', createdUtc: new Date().toISOString() };
+  recordPanel({ timestamp: current.createdUtc, vm: 'panel', event: 'panel.run_started', run: current.id, mode,
+    scenario: current.scenario, execution_kind: current.executionKind, synthetic: true, human_comparative_study: false,
+    monotonic_ms: performance.now(), time_origin_ms: performance.timeOrigin, message: 'Nova rodada iniciada; separada do histórico do TCC.' });
   vmState('attacker', 'Online');
   $('severity').textContent = mode === 'manual' ? 'MODO MANUAL' : 'EM ESPERA';
   $('severity').className = 'pill';
@@ -543,11 +573,7 @@ function loadScript(src) {
 
 function useVirtualBox() {
   $('runtime').textContent = 'VIRTUALBOX · REDE ISOLADA';
-  fetch('/api/capabilities').then((response) => response.ok ? response.json() : null).then((capabilities) => {
-    llmConfigured = Boolean(capabilities?.ollama_model);
-    if (llmConfigured) $('llm-status').textContent = `Ollama local configurado · ${capabilities.ollama_model}`;
-    updateActions();
-  }).catch(() => {});
+  SocLocalRuntime.refresh();
   const events = new EventSource('/api/events');
   events.onmessage = ({ data }) => onEvent(JSON.parse(data));
   events.onerror = () => status('Painel desconectado. Mantenha o iniciador VirtualBox aberto.', true);
@@ -583,6 +609,17 @@ async function boot() {
   }
 }
 
+document.addEventListener('soc:capabilities', ({ detail }) => {
+  llmConfigured = detail?.ollama?.ready === true;
+  const labels = { unavailable: 'O servidor Ollama não respondeu.', model_missing: 'O modelo local ainda não foi baixado.', not_configured: 'IA local ainda não configurada.' };
+  $('llm-status').textContent = llmConfigured
+    ? `Ollama local pronto · ${detail.ollama.model} · versão ${detail.ollama.engine_version}`
+    : `${labels[detail?.ollama?.status] || 'IA local indisponível.'} A triagem simulada continua separada.`;
+  updateActions();
+});
+$('refresh-model').hidden = !virtualBox;
+$('refresh-model').addEventListener('click', () => SocLocalRuntime.refresh());
+document.addEventListener('soc:journal-error', ({ detail }) => console.warn(detail));
 showEvents();
 if (!virtualBox) $('runtime').textContent = 'V86 · NO NAVEGADOR';
 if (virtualBox || !$('live-view').hidden) {

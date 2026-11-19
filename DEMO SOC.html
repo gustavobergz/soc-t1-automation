@@ -15,7 +15,10 @@
   <script defer src="lab/review.js?v=clinic-v1"></script>
   <script defer src="lab/analysis.js?v=clinic-v1"></script>
   <script defer src="lab/arena.js?v=clinic-v1"></script>
-  <script defer src="lab/painel.js?v=clinic-v1"></script>
+  <script defer src="lab/metrics.js?v=review-20261117"></script>
+  <script defer src="lab/runtime-connector.js?v=20261119"></script>
+  <script defer src="lab/historical-results.js?v=20261119"></script>
+  <script defer src="lab/painel.js?v=review-20261117"></script>
 </head>
 <body>
   <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -131,7 +134,9 @@
         <button id="auto" class="primary" type="button" disabled>2. Assistida · IA simulada</button>
         <button id="llm" class="primary" type="button" hidden disabled>Assistida · Ollama local</button>
         <button id="failure" type="button" disabled>Testar falha de triagem</button>
+        <button id="refresh-model" type="button" hidden>Verificar IA local</button>
       </div>
+      <label>Tipo de execução<select id="execution-kind"><option value="demonstration">Demonstração</option><option value="software_validation">Teste técnico automatizado</option></select></label>
       <p id="status" role="status">Inicializando as quatro VMs. Mantenha esta aba aberta.</p>
     </section>
 
@@ -142,12 +147,13 @@
           <thead><tr><th scope="col">Fluxo</th><th scope="col">Eventos brutos</th><th scope="col">Incidentes</th><th scope="col">Detecção</th><th scope="col">Triagem</th><th scope="col">Aprovação</th><th scope="col">Resposta</th></tr></thead>
           <tbody>
             <tr id="metrics-manual"><th scope="row">Manual</th><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-            <tr id="metrics-auto"><th scope="row">Assistido</th><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr id="metrics-auto"><th scope="row">Assistida · simulada</th><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr id="metrics-llm"><th scope="row">Assistida · Ollama local</th><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
           </tbody>
         </table>
       </div>
-      <p>MTTR = média do tempo entre a identificação do incidente (início do tratamento) e a aplicação do bloqueio HTTP, incluindo a aprovação humana. Só entram rodadas com contenção aplicada. <a href="#validacao">Ver método e resultados</a></p>
-      <div class="metric-summary"><span id="mttr-manual">MTTR manual —</span><span id="mttr-auto">MTTR assistido —</span><span id="automation-rate">Automação elegível —</span></div>
+      <p>MTTR = média do intervalo entre a identificação do incidente e a suspensão da sessão HTTP, incluindo a aprovação humana. Só entram rodadas com contenção aplicada, separadas entre manual, simulada e Ollama. Os grupos da demonstração não comprovam ganho de produtividade. <a href="#validacao">Ver método e resultados</a></p>
+      <div class="metric-summary"><span id="mttr-manual">MTTR manual — (sem contenção)</span><span id="mttr-auto">MTTR simulado — (sem contenção)</span><span id="mttr-llm">MTTR Ollama local — (sem contenção)</span><span id="automation-rate">Automação elegível —</span></div>
     </section>
 
     <div class="operations">
@@ -344,12 +350,19 @@
       </div>
     </section>
     <section id="validation-view" aria-labelledby="validation-title" hidden>
-      <div class="view-heading"><div><p class="eyebrow">GUIA · SEÇÕES 7 A 11 E 15</p><h1 id="validation-title">Método e auditoria</h1><p>Escopo do laboratório, resultados da avaliação e evidências das decisões.</p></div><span class="environment-badge">PROTÓTIPO ACADÊMICO</span></div>
+      <div class="view-heading"><div><p class="eyebrow">MÉTODO DA SIMULAÇÃO</p><h1 id="validation-title">Método e auditoria</h1><p>Escopo do laboratório, resultados da avaliação e evidências das decisões.</p></div><span class="environment-badge">PROTÓTIPO ACADÊMICO</span></div>
+      <section class="panel" aria-labelledby="historical-title">
+        <div class="panel-header"><div><p class="eyebrow">ACERVO DE 12 E 13 DE NOVEMBRO DE 2026</p><h2 id="historical-title">Resultados históricos do TCC</h2></div><button id="recalculate-history" type="button" class="compact">Conferir números do TCC</button></div>
+        <p id="historical-state" role="status">Conferindo o arquivo original das rodadas.</p>
+        <div class="table-scroll"><table><thead><tr><th>Modalidade</th><th>Rodadas</th><th>Detecção média</th><th>Triagem média</th><th>MTTR e amostra</th></tr></thead><tbody id="historical-times"></tbody></table></div>
+        <p id="historical-evidence"></p><p id="historical-model"></p>
+        <p>São resultados do acervo original. As novas rodadas aparecem em Operação ao vivo e não substituem este histórico. Manual sem MTTR significa que não houve contenção nessas três rodadas históricas; o modo manual pode solicitar contenção quando a seleção, a classificação e a política permitem.</p>
+      </section>
       <div class="validation-grid">
         <section class="panel scope-panel"><div class="panel-header"><h2>O que roda no laboratório</h2></div>
           <dl class="scope-list">
             <div><dt>Quatro VMs Linux</dt><dd>Convidados Linux inicializados pelo v86 no navegador ou pelo VirtualBox no Windows. As VMs trocam mensagens na rede isolada. Login, prontuário e IAM são reproduções sintéticas.</dd></div>
-            <div><dt>Wazuh e n8n</dt><dd>O coletor e o playbook em Go representam, respectivamente, Wazuh Manager/Agent e n8n. Os produtos de referência da seção 15 ainda precisam ser implantados e validados com eventos reais.</dd></div>
+            <div><dt>Wazuh e n8n</dt><dd>O coletor e o playbook em Go representam papéis de SIEM e SOAR. Wazuh e n8n são referências arquiteturais; os produtos completos não integram esta versão avaliada.</dd></div>
             <div><dt>Contenção</dt><dd>O endpoint suspende a sessão de teste no serviço HTTP da demo e mantém a sessão de controle acessível. Wazuh Active Response ou firewall ficam para a implantação com agentes reais. A política protege SIEM, SOAR e endpoint e exige aprovação humana.</dd></div>
             <div><dt>Contexto local</dt><dd>As regras da clínica utilizam escala, autorização e função da conta em dados fictícios. O laboratório anterior de SSH mantém uma reputação sintética. Os eventos ficam fora de consultas ao AbuseIPDB e ao VirusTotal.</dd></div>
           </dl>
@@ -372,7 +385,7 @@
           <label>Rodada auditada<select id="audit-run"><option value="">Aguardando histórico</option></select></label>
           <p id="audit-source" class="dataset-state" role="status">Selecione uma rodada para inspecionar os registros.</p>
           <div class="table-scroll audit-scroll"><table class="overview-table"><thead><tr><th scope="col">Hora UTC</th><th scope="col">Ação / registro</th><th scope="col">Autor</th><th scope="col">Evidências</th></tr></thead><tbody id="audit-rows"><tr><td colspan="4">Nenhum registro selecionado.</td></tr></tbody></table></div>
-          <p class="dataset-state">A aprovação, o bloqueio e a reversão são vinculados pelo ID de aprovação. Clique em uma linha para abrir o JSON integral.</p>
+          <p class="dataset-state">A aprovação, a suspensão e a reversão são vinculadas pelo ID de aprovação. Os relógios das VMs podem divergir; a ordem causal não deve ser inferida apenas dos horários UTC. Clique em uma linha para abrir o JSON integral.</p>
         </section>
       </div>
       <p class="validation-method">Automação elegível = rodadas assistidas com triagem automática validada ÷ rodadas assistidas com incidente correlacionado e tentativa de triagem. Aprovação e contenção ficam fora do numerador. Métricas calculadas na sessão de operação.</p>

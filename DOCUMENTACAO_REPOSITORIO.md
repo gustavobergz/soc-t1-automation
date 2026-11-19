@@ -48,7 +48,7 @@ No site público, o v86 executa quatro convidados Linux no navegador e as novas 
 
 Este manual descreve a versão do código identificada nas referências finais. As imagens são capturas da demonstração publicada, em um perfil isolado, com evidências e casos fictícios criados para ilustrar a navegação.
 
-Código de referência: [README.md](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/README.md), [lab/investigation.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/investigation.js).
+Código de referência: [README.md](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/README.md), [lab/investigation.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/investigation.js).
 
 <a id="secao-2"></a>
 
@@ -78,7 +78,7 @@ Os quatro convidados representam SIEM/coletor, aplicação da clínica, reprodut
 
 A base histórica é um arquivo JSONL compactado. Os casos usam armazenamento do navegador. Não há um banco SQL central nem treinamento do modelo com 205 mil logs. O tamanho da base não determina o tamanho da entrada da IA: somente um resumo estruturado do incidente selecionado é enviado.
 
-Código de referência: [lab/go.mod](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/go.mod), [lab/virtualbox.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/virtualbox.cjs), [lab/ollama.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/ollama.cjs), [THIRD_PARTY_NOTICES.md](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/THIRD_PARTY_NOTICES.md).
+Código de referência: [lab/go.mod](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/go.mod), [lab/virtualbox.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/virtualbox.cjs), [lab/ollama.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/ollama.cjs), [THIRD_PARTY_NOTICES.md](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/THIRD_PARTY_NOTICES.md).
 
 <a id="secao-3"></a>
 
@@ -98,7 +98,7 @@ Os pesos são 18 para alta, 9 para média, 4 para baixa e 2 para incidente sem c
 
 O total de registros com severidade alta é uma contagem de eventos do arquivo. Ele pode incluir várias evidências do mesmo cenário. O Pulse acompanha outra população, por isso seus números não devem ser interpretados como uma divisão dos 205.000 eventos nem como uma medição global da segurança de uma clínica real.
 
-Código de referência: [lab/dashboard.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/dashboard.js), [lab/review.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/review.js).
+Código de referência: [lab/dashboard.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/dashboard.js), [lab/review.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/review.js).
 
 <a id="secao-4"></a>
 
@@ -126,7 +126,7 @@ Esta página executa os cenários nas quatro VMs e mostra eventos, triagem, deci
 
 A contenção suspende uma sessão de teste no serviço HTTP. Não revoga uma conta de prontuário real nem desfaz uma permissão corporativa. Alta severidade sozinha não autoriza bloquear: contexto autorizado e exportação já recusada levam a acompanhamento. A primeira triagem inválida impede a contenção assistida.
 
-Código de referência: [lab/painel.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/painel.js), [lab/clinic.go](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/clinic.go), [lab/policy.go](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/policy.go).
+Código de referência: [lab/painel.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/painel.js), [lab/clinic.go](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/clinic.go), [lab/policy.go](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/policy.go).
 
 <a id="secao-5"></a>
 
@@ -149,7 +149,7 @@ A severidade de um evento é um campo do log. A severidade escolhida para um cas
 
 As consultas da base são individuais para permitir marcação uma a uma. No cenário ao vivo, essas mesmas consultas são resumidas em eventos com contagem. Portanto, quantidade de linhas e quantidade de prontuários consultados são medidas diferentes.
 
-Código de referência: [lab/investigation.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/investigation.js), [lab/log-worker.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/log-worker.js), [lab/generate-clinic.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/generate-clinic.cjs).
+Código de referência: [lab/investigation.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/investigation.js), [lab/log-worker.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/log-worker.js), [lab/generate-clinic.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/generate-clinic.cjs).
 
 <a id="secao-6"></a>
 
@@ -173,7 +173,7 @@ Uma conclusão revisada ajuda a comparar incidentes posteriores. Casos encerrado
 
 O personagem de aprovação da demonstração é fixo, analista-demo. O sistema não oferece autenticação individual de analistas ou controle corporativo de permissões. Esses recursos precisam ser acrescentados antes de um uso operacional com pessoas e dados reais.
 
-Código de referência: [lab/investigation.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/investigation.js), [lab/review.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/review.js).
+Código de referência: [lab/investigation.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/investigation.js), [lab/review.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/review.js).
 
 <a id="secao-7"></a>
 
@@ -197,7 +197,7 @@ Evidence Gap Detector aponta o que ainda precisa ser investigado, como reconheci
 
 Simular impacto mostra qual sessão seria suspensa e quais controles deveriam continuar acessíveis. A saída registra applied: false. A prévia não envia tráfego nem altera regras. O resultado descreve o serviço HTTP do laboratório; impactos em sistemas clínicos reais exigiriam inventário e integrações adicionais.
 
-Código de referência: [lab/analysis.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/analysis.js), [lab/review.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/review.js), [lab/triage.go](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/triage.go).
+Código de referência: [lab/analysis.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/analysis.js), [lab/review.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/review.js), [lab/triage.go](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/triage.go).
 
 <a id="secao-8"></a>
 
@@ -231,7 +231,7 @@ O campo de perguntas executa consultas estruturadas locais e mostra exemplos dos
 | Quais IPs tiveram mais falhas hoje? | Falhas de autenticação agrupadas, com data UTC da consulta. |
 | Por que a severidade é alta? | Classificação e justificativa presentes no comprovante da análise atual. |
 
-Código de referência: [lab/review.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/review.js), [lab/analysis.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/analysis.js).
+Código de referência: [lab/review.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/review.js), [lab/analysis.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/analysis.js).
 
 <a id="secao-9"></a>
 
@@ -254,7 +254,7 @@ No plantão autorizado, a mudança aprovada sustenta a interpretação de falso 
 
 O contador de cenários resolvidos vai de zero a quatro e pertence à sessão de treinamento. As ações da Arena não aprovam bloqueios nem aumentam o SOC Pulse. O gabarito avalia uma resposta ao exercício; não é uma estimativa de precisão do modelo em produção.
 
-Código de referência: [lab/arena.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/arena.js), [lab/clinic.json](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/clinic.json).
+Código de referência: [lab/arena.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/arena.js), [lab/clinic.json](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/clinic.json).
 
 <a id="secao-10"></a>
 
@@ -266,7 +266,7 @@ A página reúne escopo, regras, tratamento da IA e avaliação controlada. Na o
 
 | Medida | Definição usada no projeto |
 | --- | --- |
-| MTTR | Média entre identificação do incidente e contenção aplicada, incluindo a espera de aprovação; somente rodadas contidas, separadas em manual e assistida. |
+| MTTR | Média entre identificação do incidente e contenção aplicada, incluindo aprovação; somente rodadas contidas, separadas entre manual, assistida simulada e assistida Ollama. |
 | Tempos intermediários | Detecção, triagem e aprovação aparecem separadamente para explicar a duração da resposta. |
 | Taxa de automação | Triagens assistidas válidas divididas pelas rodadas assistidas que chegaram à triagem. Inclui a saída simulada identificada. |
 | Falso positivo e falso negativo | Alerta em caso benigno e ausência de alerta em caso malicioso, segundo o gabarito da suíte do detector. |
@@ -281,7 +281,7 @@ As regras clínicas usam até 120 segundos após o login para relacionar ações
 
 Não use 30 minutos como resultado manual medido sem executar uma rodada correspondente. Registre valores observados, ambiente, modo de triagem e início e fim da medição. Os horários dos logs são UTC; a interface mede intervalos da rodada com o relógio de desempenho do navegador.
 
-Código de referência: [lab/validation.js](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/validation.js), [lab/evaluation.go](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/evaluation.go), [lab/clinic.go](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/clinic.go).
+Código de referência: [lab/validation.js](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/validation.js), [lab/evaluation.go](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/evaluation.go), [lab/clinic.go](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/clinic.go).
 
 <a id="secao-11"></a>
 
@@ -318,7 +318,7 @@ powershell -File .\VirtualBox.ps1 -Mode Stop
 
 Se a IA estiver indisponível, examine a preparação do modelo e use o modo simulado identificado para a apresentação. Uma triagem inválida deve permanecer sem contenção assistida. Os casos do navegador devem ser exportados antes de limpar o perfil.
 
-Código de referência: [README.md](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/README.md), [VirtualBox.ps1](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/VirtualBox.ps1), [LocalAI.ps1](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/LocalAI.ps1), [lab/ollama-cpu.json](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/ollama-cpu.json).
+Código de referência: [README.md](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/README.md), [VirtualBox.ps1](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/VirtualBox.ps1), [LocalAI.ps1](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/LocalAI.ps1), [lab/ollama-cpu.json](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/ollama-cpu.json).
 
 <a id="secao-12"></a>
 
@@ -359,7 +359,7 @@ O arquivo em logs/ é o histórico distribuído com o repositório. Casos e conc
 
 Os arquivos e testes de SSH anteriores continuam no repositório para comparação. A existência de arquivos legados não muda o cenário clínico padrão nem significa que Wazuh e SOAR originais estejam instalados.
 
-Código de referência: [lab/build-virtualbox.py](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/build-virtualbox.py), [lab/generate-clinic.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/generate-clinic.cjs), [lab/virtualbox.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/virtualbox.cjs).
+Código de referência: [lab/build-virtualbox.py](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/build-virtualbox.py), [lab/generate-clinic.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/generate-clinic.cjs), [lab/virtualbox.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/virtualbox.cjs).
 
 <a id="secao-13"></a>
 
@@ -367,7 +367,7 @@ Código de referência: [lab/build-virtualbox.py](https://github.com/gustavoberg
 
 ### Da proposta acadêmica à implementação
 
-O TCC fornecido descreve o fluxo original de abuso de SSH, Wazuh, enriquecimento, LLM e resposta com aprovação. O texto de apresentação propõe uma abordagem mais ampla sobre segurança de agentes autônomos e impacto no negócio. O repositório atual é uma prova de conceito defensiva em saúde, com escopo delimitado e conta roubada como cenário principal.
+O TCC atual descreve um fluxo supervisionado de SOC Tier 1, implementado com serviços próprios em Go e avaliado em uma clínica fictícia. O aplicativo reúne investigação individual, correlação, triagem simulada ou Ollama local e contenção limitada com aprovação humana. A adaptação a outras fontes e setores exige conectores, normalização, regras e validação específicos.
 
 | Tema dos materiais | Como aparece no repositório atual |
 | --- | --- |
@@ -388,8 +388,8 @@ A versão soc-clinic-3 inclui fatos derivados por código e referência de sever
 
 Apresente o problema da clínica, investigue a sessão SES-MED-017, salve um caso, mostre contraprovas e lacunas, execute uma rodada e compare sondas e tempos observados. Use o plantão autorizado para discutir falsos positivos. Relacione o resultado à redução de trabalho repetitivo e à continuidade do atendimento como objetivos a avaliar, sem inventar percentuais de ganho.
 
-Base da documentação: código no commit 4fe70d93d27ab42db2e1fa3f5be6650924aba3f7, capturas de 13 de novembro de 2026, TCC_Autonomous_SOC_Tier1_Versao_Academica.docx e conteúdo textual pertinente da apresentação fornecida. Trechos de sessão e HTML do anexo foram excluídos. Os anexos originais não são redistribuídos.
+Base da documentação: revisão 0184c785f73ce15a36ffbd93ac8b395d461679a2, TCC_cybersegurança.docx e registros sintéticos de 12 e 13 de novembro de 2026. A revisão de 19 de novembro de 2026 acrescenta conferência dos resultados históricos, verificação da disponibilidade do Ollama e registro separado das novas execuções. Os resultados históricos foram preservados.
 
-[Repositório](https://github.com/gustavobergz/soc-t1-automation) · [Demonstração](https://gustavobergz.github.io/soc-t1-automation/) · [Documentação da simulação](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/DOCUMENTACAO_SIMULACAO.md) · [Componentes e licenças](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/THIRD_PARTY_NOTICES.md)
+[Repositório](https://github.com/gustavobergz/soc-t1-automation) · [Demonstração](https://gustavobergz.github.io/soc-t1-automation/) · [Documentação da simulação](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/DOCUMENTACAO_SIMULACAO.md) · [Componentes e licenças](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/THIRD_PARTY_NOTICES.md)
 
-Código de referência: [lab/triage.go](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/triage.go), [lab/clinic.go](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/clinic.go), [lab/ollama.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/ollama.cjs).
+Código de referência: [lab/triage.go](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/triage.go), [lab/clinic.go](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/clinic.go), [lab/ollama.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/0184c785f73ce15a36ffbd93ac8b395d461679a2/lab/ollama.cjs).

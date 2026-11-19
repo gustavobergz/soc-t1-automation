@@ -4,11 +4,14 @@ const http = require('node:http');
 const net = require('node:net');
 const path = require('node:path');
 const ollama = require('./ollama.cjs');
+const { createJournal, provenance } = require('./journal.cjs');
 
 const host = '127.0.0.1';
 const port = 8771;
 const origin = `http://${host}:${port}`;
 const root = path.resolve(__dirname, '..');
+const runtimeProvenance = provenance(root);
+const auditJournal = createJournal(root, runtimeProvenance.manifest_sha256);
 const channels = new Map();
 const listeners = new Set();
 const journal = [];
@@ -24,6 +27,9 @@ const assets = new Map([
   ['/', ['DEMO SOC.html', 'text/html; charset=utf-8']],
   ['/lab/assets/soc-shield.svg', ['lab/assets/soc-shield.svg', 'image/svg+xml']],
   ['/lab/painel.js', ['lab/painel.js', 'text/javascript; charset=utf-8']],
+  ['/lab/metrics.js', ['lab/metrics.js', 'text/javascript; charset=utf-8']],
+  ['/lab/runtime-connector.js', ['lab/runtime-connector.js', 'text/javascript; charset=utf-8']],
+  ['/lab/historical-results.js', ['lab/historical-results.js', 'text/javascript; charset=utf-8']],
   ['/lab/painel.css', ['lab/painel.css', 'text/css; charset=utf-8']],
   ['/lab/dashboard.js', ['lab/dashboard.js', 'text/javascript; charset=utf-8']],
   ['/lab/validation.js', ['lab/validation.js', 'text/javascript; charset=utf-8']],
@@ -42,6 +48,7 @@ const assets = new Map([
 ]);
 
 function publish(event) {
+  auditJournal.append(event, 'vm').catch((error) => console.error('Gravação da auditoria pendente:', error.message));
   const item = { id: ++sequence, line: `id: ${sequence}\ndata: ${JSON.stringify(event)}\n\n` };
   journal.push(item);
   if (journal.length > 5000) journal.shift();
@@ -105,7 +112,29 @@ function reply(response, code) {
 async function handle(request, response) {
   if (request.headers.host !== `${host}:${port}`) return reply(response, 403);
   if (request.method === 'GET' && request.url === '/api/capabilities') {
-    response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify({ ollama_model: ollama.model }));
+    const health = await ollama.health();
+    response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify({ transport: 'virtualbox', journal: true, ollama_model: ollama.model, ollama: health, provenance: runtimeProvenance }));
+    return;
+  }
+  if (request.method === 'GET' && request.url === '/api/provenance') {
+    response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(runtimeProvenance));
+    return;
+  }
+  if (request.method === 'GET' && request.url === '/api/journal-status') {
+    response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(auditJournal.status()));
+    return;
+  }
+  if (request.method === 'POST' && request.url === '/api/journal') {
+    if (request.headers.origin !== origin || request.headers['content-type'] !== 'application/json') return reply(response, 403);
+    let body = '';
+    for await (const chunk of request) { body += chunk; if (Buffer.byteLength(body) > 512000) return reply(response, 413); }
+    const payload = JSON.parse(body);
+    if (!Array.isArray(payload.events) || payload.events.length > 60 || payload.events.some((item) =>
+      !item || typeof item.id !== 'string' || !/^[a-zA-Z0-9_-]{8,100}$/.test(item.id) || !item.event ||
+      item.event.vm !== 'panel' || !['panel.metrics', 'panel.run_started', 'panel.shadow_preview', 'panel.run_finished'].includes(item.event.event) ||
+      !/^SOC-\d{3,24}$/.test(item.event.run) || !Number.isFinite(Date.parse(item.event.timestamp)))) return reply(response, 400);
+    for (const item of payload.events) await auditJournal.append(item.event, 'panel', item.id);
+    response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(auditJournal.status()));
     return;
   }
   if (request.method === 'GET' && request.url === '/api/events') {
