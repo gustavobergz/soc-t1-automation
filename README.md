@@ -60,3 +60,7 @@ O painel histórico confere o SHA256 de `logs/clinica-demo.jsonl` e recalcula as
 No iniciador VirtualBox, a disponibilidade da IA é consultada no serviço Ollama antes de habilitar a triagem real. O diário de cada sessão fica em `logs/novas-execucoes/sessao-<id>.jsonl`, com sequência, versões e encadeamento de hashes. Essa pasta é local e não entra no Git. O encadeamento permite conferir consistência, mas não substitui autenticação individual ou auditoria imutável. A opção **Exportar JSONL** continua disponível no painel.
 
 O campo **Tipo de execução** distingue demonstrações de testes técnicos automatizados. Esses registros não constituem um estudo comparativo com participantes humanos.
+
+## Evidências do TCC
+
+O [pacote original e as instruções de reprodução](evidencias/README.md) estão disponíveis em `evidencias/`. Para recalcular os resultados históricos com Python, execute `python scripts/analisar_evidencias.py` na raiz. O comando verifica o pacote e mantém os resultados novos separados do acervo original.
