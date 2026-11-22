@@ -94,7 +94,7 @@ function showEvents() {
   if (!matches.length) {
     const empty = document.createElement('li');
     empty.className = 'empty';
-    empty.textContent = current ? 'Nenhum evento para este filtro.' : 'Inicie uma rodada para acompanhar os eventos aqui.';
+    empty.textContent = current ? 'Nenhum evento para este filtro.' : 'Selecione um fluxo para acompanhar os eventos.';
     list.append(empty);
     return;
   }
@@ -289,9 +289,9 @@ function onEvent(event) {
     if (!current) {
       if (ready.size === 4) {
         clearTimeout(timeout);
-        status('Quatro VMs online. Comece pela rodada manual.');
+        status('Serviços disponíveis. Selecione um fluxo de atendimento.');
       } else {
-        status(`Inicializando as VMs · ${ready.size} de 4 online.`);
+        status(`Conectando aos serviços · ${ready.size} de 4 disponíveis.`);
       }
     }
     updateActions();
@@ -344,7 +344,7 @@ function onEvent(event) {
     case 'soar.enriched':
       automation.set(event.run, false);
       showSessionMetrics();
-      setStep('enrich', `AbuseIPDB simulado ${event.reputation}/100 · VirusTotal não consultado · ${event.mitre.join(' e ')}. T1068 não atribuído.`);
+      setStep('enrich', `Reputação de referência ${event.reputation}/100 · VirusTotal não consultado · ${event.mitre.join(' e ')}. T1068 não atribuído.`);
       if (current.scenario) setStep('enrich', `Contexto local da clínica · ATT&CK ${event.mitre.join(' e ')} · sem consulta externa.`);
       break;
     case 'soar.triage_requested':
@@ -364,10 +364,10 @@ function onEvent(event) {
       }
       $('severity').classList.add(`severity-${event.severity}`);
       $('severity').textContent = `SEVERIDADE ${SocLogs.severity(event.severity).toUpperCase()}`;
-      setStep('triage', event.result ? `${event.simulation ? 'Simulada' : 'Ollama local'} · JSON validado · ${event.result.uncertainty}` : event.justification);
+      setStep('triage', event.result ? `${event.simulation ? 'Resposta de referência' : 'Ollama local'} · JSON validado · ${event.result.uncertainty}` : event.justification);
       if (event.severity_source === 'clinical_rule') {
         $('severity').textContent = `PRIORIDADE ${SocLogs.severity(event.severity).toUpperCase()}`;
-        setStep('triage', `Regra: ${SocLogs.severity(event.severity)} · sugestão ${event.simulation ? 'simulada' : 'da IA'}: ${SocLogs.severity(event.model_suggested_severity)}${event.severity_disagreement ? ' · divergência para revisão' : ''}. Incerteza sugerida: ${event.result.uncertainty}`);
+        setStep('triage', `Regra: ${SocLogs.severity(event.severity)} · sugestão ${event.simulation ? 'de referência' : 'do modelo'}: ${SocLogs.severity(event.model_suggested_severity)}${event.severity_disagreement ? ' · divergência para revisão' : ''}. Incerteza sugerida: ${event.result.uncertainty}`);
       }
       break;
     case 'soar.triage_rejected':
@@ -390,7 +390,7 @@ function onEvent(event) {
     case 'soar.shadow_preview': {
       const summary = globalThis.SocAnalysis?.summary(event.run);
       $('review-summary').hidden = false;
-      $('review-summary').textContent = `Simulação registrada · HTTP ${event.predicted_source_status} previsto por ${event.ttl_seconds} s · ${summary || 'consulte a revisão'}.`;
+      $('review-summary').textContent = `Prévia de impacto registrada · HTTP ${event.predicted_source_status} previsto por ${event.ttl_seconds} s · ${summary || 'consulte a revisão'}.`;
       break;
     }
     case 'soar.approval_granted':
