@@ -4,7 +4,7 @@
   const el = (id) => document.getElementById(id);
   const scenarios = await SocClinic.ready;
   if (!scenarios.length) {
-    el('arena-brief').textContent = 'Use o site publicado ou o iniciador local para carregar os exercícios da clínica.';
+    el('arena-brief').textContent = 'Os exercícios de treinamento estarão disponíveis quando os dados forem carregados.';
     return;
   }
   const selector = el('arena-scenario');
