@@ -81,26 +81,22 @@ func TestClinicCorrelationRequiresSessionAndWindow(t *testing.T) {
 }
 
 func TestIncompleteClinicEvidenceNeverRequestsContainment(t *testing.T) {
-	cases := map[string]func([]signal){
-		"login telemetry absent": func(events []signal) {
-			copy(events, events[1:])
+	cases := map[string]func([]signal) []signal{
+		"login telemetry absent": func(events []signal) []signal {
+			return events[1:]
 		},
-		"actions in different sessions": func(events []signal) {
+		"actions in different sessions": func(events []signal) []signal {
 			events[len(events)-1].Session = "OUTRA-SESSAO"
+			return events
 		},
-		"activity after correlation window": func(events []signal) {
+		"activity after correlation window": func(events []signal) []signal {
 			events[len(events)-1].At = events[0].At.Add(121 * time.Second)
+			return events
 		},
 	}
 	for name, alter := range cases {
 		t.Run(name, func(t *testing.T) {
-			events := clinicReplay("stolen_account")
-			if name == "login telemetry absent" {
-				events = events[1:]
-			} else {
-				alter(events)
-			}
-			incident := summarize(events)
+			incident := summarize(alter(clinicReplay("stolen_account")))
 			if incident.ChainComplete {
 				t.Fatal("incomplete evidence unexpectedly formed a complete chain")
 			}
