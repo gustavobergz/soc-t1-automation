@@ -8,7 +8,7 @@ globalThis.SocValidation = (() => {
     'siem.correlated': 'Correlação', 'siem.manual_detected': 'Identificação manual', 'soar.enriched': 'Enriquecimento',
     'soar.triage_requested': 'Solicitação ao Ollama', 'soar.triaged': 'Triagem automática validada', 'soar.triage_failed': 'Triagem rejeitada',
     'soar.manual_triaged': 'Triagem manual', 'soar.approval_requested': 'Pedido de aprovação', 'soar.approval_granted': 'Aprovação concedida',
-    'soar.challenged': 'Contraprova consultiva', 'soar.shadow_preview': 'Impacto previsto pelo playbook', 'panel.shadow_preview': 'Simulação no painel',
+    'soar.challenged': 'Contraprova consultiva', 'soar.shadow_preview': 'Impacto previsto pelo playbook', 'panel.shadow_preview': 'Prévia de impacto no painel',
     'soar.approval_rejected': 'Aprovação rejeitada', 'soar.policy_denied': 'Política impediu a ação', 'soar.monitor_only': 'Acompanhamento',
     'endpoint.block_applied': 'Bloqueio HTTP aplicado', 'soar.rollback_requested': 'Desbloqueio solicitado', 'endpoint.block_released': 'Origem liberada',
   };
@@ -31,7 +31,7 @@ globalThis.SocValidation = (() => {
       empty(list, 'Nenhum registro selecionado.');
       return;
     }
-    el('audit-source').textContent = run.historical ? 'Amostra de validação do laboratório' : 'Rodada desta sessão';
+    el('audit-source').textContent = run.historical ? 'Amostra de validação' : 'Rodada desta sessão';
     for (const event of run.events) {
       const row = list.insertRow();
       row.insertCell().textContent = event.timestamp.slice(11, 23);
@@ -58,7 +58,7 @@ globalThis.SocValidation = (() => {
   function renderBenchmark(event, historical) {
     if (historical && actualBenchmark) return;
     if (!historical) actualBenchmark = true;
-    el('benchmark-state').textContent = historical ? 'Resultado da amostra de validação. Execute novamente para reproduzir.' : 'Avaliação executada nesta sessão pela VM SIEM.';
+    el('benchmark-state').textContent = historical ? 'Resultado da amostra de validação. Execute novamente para repetir a avaliação.' : 'Avaliação executada nesta sessão pela VM SIEM.';
     el('benchmark-fp').textContent = `FP ${event.counts.fp} · ${percent.format(event.false_positive_rate)}`;
     el('benchmark-fn').textContent = `FN ${event.counts.fn} · ${percent.format(event.false_negative_rate)}`;
     el('benchmark-confusion').textContent = `VP ${event.counts.tp} · VN ${event.counts.tn}`;
