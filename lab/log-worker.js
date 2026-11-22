@@ -12,9 +12,9 @@ function archiveWorker() {
   function parseTextLog(text, line) {
     const timestamp = text.match(/^(\\S+)/)?.[1];
     const fields = Object.create(null);
-    const pattern = /([A-Za-z_][\\w.-]*)=(?:"((?:\\\\.|[^"])*)"|(\\S+))/g;
+    const pattern = /([A-Za-z_][\w.-]*)=(?:"((?:\\.|[^"])*)"|(\S+))/g;
     for (const match of text.matchAll(pattern)) {
-      fields[match[1]] = match[2] !== undefined ? match[2].replace(/\\\\(["\\\\])/g, '$1') : match[3];
+      fields[match[1]] = match[2] !== undefined ? match[2].replace(/\\(["\\])/g, '$1') : match[3];
     }
     if (!timestamp || !fields.host) throw new Error('Invalid text log');
     return {
