@@ -5,7 +5,7 @@ globalThis.SocLogs = (() => {
   const format = new Intl.NumberFormat('pt-BR');
   const labels = { alta: 'Alta', media: 'Média', baixa: 'Baixa', info: 'Informativa' };
   const severity = (value) => Object.hasOwn(labels, value) ? labels[value] : 'Sem nível';
-  const corpus = 'clinica-investigacao-205k.jsonl.gz';
+  const corpus = 'clinica-investigacao-205k.txt.gz';
   const hosted = location.protocol !== 'file:' && location.origin !== 'http://127.0.0.1:8771';
   const storageKey = 'soc-tier1-cases-v1';
   const form = el('search-logs');
@@ -38,7 +38,7 @@ globalThis.SocLogs = (() => {
     const dialog = el('log-detail');
     el('detail-title').textContent = event.event_id || event.id || event.event_type || event.event || 'Detalhe do evento';
     el('detail-message').textContent = event.message || event.raw || '';
-    el('detail-json').textContent = JSON.stringify(event, null, 2);
+    el('detail-json').textContent = event.raw_text || JSON.stringify(event, null, 2);
     const mark = el('detail-select');
     const pivot = el('detail-pivot');
     mark.hidden = !actions.toggle;
@@ -378,7 +378,7 @@ globalThis.SocLogs = (() => {
     if (location.protocol === 'file:') {
       loadState('No modo local, selecione logs/clinica-exemplo.jsonl.');
       el('log-file').click();
-    } else load(null, 'clinica-exemplo.jsonl');
+    } else load(null, 'clinica-exemplo.txt');
   });
   el('log-file').addEventListener('change', (event) => {
     const file = event.target.files[0];
