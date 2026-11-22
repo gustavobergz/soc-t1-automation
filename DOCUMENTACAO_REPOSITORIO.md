@@ -267,11 +267,20 @@ A página reúne escopo, regras, tratamento da IA e avaliação controlada. Na o
 | Medida | Definição usada no projeto |
 | --- | --- |
 | MTTR | Média entre identificação do incidente e contenção aplicada, incluindo a espera de aprovação; somente rodadas contidas, separadas em manual e assistida. |
-| Tempos intermediários | Detecção, triagem e aprovação aparecem separadamente para explicar a duração da resposta. |
+| Tempos intermediários | Detecção, triagem, aprovação e atividade até decisão inicial aparecem separadamente. |
+| Atividade → decisão inicial | Tempo do primeiro evento de telemetria até a classificação inicial válida; comparação pareada Manual/Ollama local, pelo mesmo cenário e ID. A saída simulada é excluída. |
 | Taxa de automação | Triagens assistidas válidas divididas pelas rodadas assistidas que chegaram à triagem. Inclui a saída simulada identificada. |
 | Falso positivo e falso negativo | Alerta em caso benigno e ausência de alerta em caso malicioso, segundo o gabarito da suíte do detector. |
 | FPR e FNR | FP / (FP + VN) e FN / (FN + VP), respectivamente. Os denominadores são distintos. |
 | Auditoria | Ator fictício, ação, horário UTC, evidências, aprovação, resultado e reversão; triagem acrescenta provedor, modelo e prompt. |
+
+### Comparação pareada Manual/Ollama
+
+O painel aceita um ID de par. Para cada ID, execute exatamente o mesmo cenário uma vez em Manual e uma vez com Ollama local. O tempo comparável começa no primeiro evento de telemetria disponível e termina quando a classificação inicial válida é registrada. Em Manual, inclui leitura dos eventos, seleção de evidências e decisão do analista; em Ollama, inclui detecção e inferência. O tempo termina antes da aprovação e da contenção, portanto mede a rapidez da decisão inicial, não o MTTR.
+
+Use IDs diferentes para repetições e alterne a ordem dos modos para reduzir efeitos de aprendizado, cansaço e aquecimento do modelo. Mantenha iguais cenário, máquina, modelo, prompt e configuração. Compare apenas pares completos com um registro de cada modo; a triagem simulada nunca entra. Diferença Ollama − Manual negativa significa que o Ollama foi mais rápido. O painel também informa em quantos pares completos o Ollama terminou primeiro.
+
+Trate isso como um estudo exploratório. Registre várias repetições por cenário, divulgue todos os tempos e a dispersão, e evite afirmar superioridade geral com poucos pares ou um único analista. Para uma conclusão estatística, defina previamente a amostra e a análise (por exemplo, intervalo de confiança pareado) e repita com mais de um analista. Uma rodada mais rápida não demonstra, por si só, maior precisão ou melhor qualidade de triagem.
 
 ### Alcance do resultado
 
