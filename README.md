@@ -25,7 +25,7 @@ A configuração inicial usa internet. O instalador baixa cerca de 46 MB de comp
 
 O servidor de inferência iniciado pelo projeto usa `127.0.0.1:11434` com recursos de nuvem desativados. O conector envia contagens, indicadores e IDs de evidência. Os arquivos do serviço e os pesos ficam em `%LOCALAPPDATA%\SOC-Tier1`. A entrada e a saída validadas podem ser inspecionadas na triagem em JSON. [Documentação do Ollama](https://docs.ollama.com/faq)
 
-Para executar o ambiente local com os dados de demonstração, abra **INICIAR VIRTUALBOX.cmd**. O site também executa as VMs pelo v86 no navegador. O laboratório SSH anterior continua selecionável. Para encerrar as VMs criadas pelo projeto, execute `powershell -File .\VirtualBox.ps1 -Mode Stop`.
+Para executar o ambiente local com os dados de demonstração, abra **INICIAR VIRTUALBOX.cmd**. O site também executa os serviços isolados pelo v86 no navegador. O laboratório SSH anterior continua selecionável. Para encerrar as VMs criadas pelo projeto, execute `powershell -File .\VirtualBox.ps1 -Mode Stop`.
 
 ## Documentação e demonstração
 
