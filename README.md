@@ -45,6 +45,6 @@ A prioridade operacional vem das regras clínicas. O painel apresenta separadame
 node lab/generate-clinic.cjs
 ```
 
-O gerador produz exatamente 205.000 eventos fictícios da clínica em `logs/clinica-investigacao-205k.txt.gz`. Para uma cópia TXT sem compressão, use `node lab/generate-clinic.cjs logs/clinica-investigacao-205k.txt`. A geração adapta padrões de autenticação, gateway web e acesso administrativo a serviços clínicos fictícios; não inclui dados reais de pacientes. O catálogo compartilhado dos cenários fica em `lab/clinic.json`. Um texto-base de atualização do TCC está em [docs/TCC_SECOES_CLINICA_205K.md](docs/TCC_SECOES_CLINICA_205K.md).
+O gerador produz exatamente 205.000 eventos fictícios da clínica em `logs/clinica-investigacao-205k.txt`. Para gerar uma versão compactada, informe um caminho terminado em `.gz`, por exemplo `node lab/generate-clinic.cjs logs/clinica-investigacao-205k.txt.gz`. A geração adapta padrões de autenticação, gateway web e acesso administrativo a serviços clínicos fictícios; não inclui dados reais de pacientes. O catálogo compartilhado dos cenários fica em `lab/clinic.json`. Um texto-base de atualização do TCC está em [docs/TCC_SECOES_CLINICA_205K.md](docs/TCC_SECOES_CLINICA_205K.md).
 
 [Componentes e licenças de terceiros](THIRD_PARTY_NOTICES.md)
