@@ -7,7 +7,7 @@ Laboratório acadêmico de SOC para investigar atividades suspeitas em uma clín
 ## Começar
 
 - **Análise de incidentes** abre rodadas registradas, replay, história, contraprovas, lacunas e comprovante em JSON.
-- **Investigar logs** carrega 205.000 eventos da clínica. Busque `MED-017`, `REC-004` ou `ENF-009`, selecione evidências individuais e salve um caso.
+- **Investigar logs** carrega 205.000 eventos fictícios da clínica. Busque `MED-017`, `REC-004` ou `ENF-009`, selecione evidências individuais e salve um caso. A amostra legível fica em [logs/clinica-exemplo.jsonl](logs/clinica-exemplo.jsonl).
 - **Operação ao vivo** executa o cenário escolhido nas quatro VMs. Compare triagem manual, resposta simulada e Ollama local.
 - **SOC Arena** apresenta os quatro cenários com classificação e escolha da evidência decisiva.
 - **Método e auditoria** apresenta a política, as métricas e a avaliação controlada do detector.
@@ -45,6 +45,6 @@ A prioridade operacional vem das regras clínicas. O painel apresenta separadame
 node lab/generate-clinic.cjs
 ```
 
-O gerador produz `logs/clinica-investigacao-205k.jsonl.gz`. Para uma cópia sem compressão, use `node lab/generate-clinic.cjs logs/clinica-investigacao-205k.jsonl`. O catálogo compartilhado dos cenários fica em `lab/clinic.json`. A base e os logs anteriores de SSH continuam no repositório.
+O gerador produz exatamente 205.000 eventos fictícios da clínica em `logs/clinica-investigacao-205k.jsonl.gz`. Para uma cópia sem compressão, use `node lab/generate-clinic.cjs logs/clinica-investigacao-205k.jsonl`. A geração adapta padrões de autenticação, gateway web e acesso administrativo a serviços clínicos fictícios; não inclui dados reais de pacientes. O catálogo compartilhado dos cenários fica em `lab/clinic.json`. Um texto-base de atualização do TCC está em [docs/TCC_SECOES_CLINICA_205K.md](docs/TCC_SECOES_CLINICA_205K.md).
 
 [Componentes e licenças de terceiros](THIRD_PARTY_NOTICES.md)
