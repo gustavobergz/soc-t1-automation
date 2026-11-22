@@ -9,6 +9,24 @@ function archiveWorker() {
   const scalar = (value) => typeof value === 'string' || typeof value === 'number' ? String(value) : '';
   const normalizeSeverity = (value) => ({ high: 'alta', medium: 'media', low: 'baixa', média: 'media', informational: 'info' })[value] || value;
 
+  function parseTextLog(text, line) {
+    const timestamp = text.match(/^(\\S+)/)?.[1];
+    const fields = Object.create(null);
+    const pattern = /([A-Za-z_][\\w.-]*)=(?:"((?:\\\\.|[^"])*)"|(\\S+))/g;
+    for (const match of text.matchAll(pattern)) {
+      fields[match[1]] = match[2] !== undefined ? match[2].replace(/\\\\(["\\\\])/g, '$1') : match[3];
+    }
+    if (!timestamp || !fields.host) throw new Error('Invalid text log');
+    return {
+      ...fields, timestamp, event_id: fields.event_id || `linha-${line}`,
+      event_type: fields.event || fields.event_type || fields.service || 'sem_tipo',
+      username: fields.user || fields.username || '',
+      source_ip: fields.src || fields.source_ip || '',
+      severity: fields.severity || (fields.status === 'denied' ? 'media' : 'info'),
+      message: fields.message || text, raw_text: text,
+    };
+  }
+
   function normalize(raw, line, source) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
     const timestamp = scalar(raw.event_time ?? raw.timestamp ?? raw['@timestamp']);
@@ -62,9 +80,10 @@ function archiveWorker() {
 
     function read(text) {
       line++;
-      if (!text.trim()) return;
+      if (!text.trim() || text.trimStart().startsWith('#')) return;
       try {
-        const record = normalize(JSON.parse(text), line, source);
+        const value = text.trimStart().startsWith('{') ? JSON.parse(text) : parseTextLog(text, line);
+        const record = normalize(value, line, source);
         if (!record) throw new Error('Expected an object');
         if (keys.has(record.key)) record.key = JSON.stringify([record.key, source, line]);
         keys.add(record.key);
@@ -171,7 +190,7 @@ function archiveWorker() {
     }
     if (query.kind === 'clinic_activity') {
       const accepted = {
-        reads: ['ehr.record_read'], exports: ['ehr.export_requested', 'ehr.export_denied'],
+        reads: ['ehr.record_read'], exports: ['ehr.export_requested', 'ehr.export_denied', 'export.requested'],
         permissions: ['iam.role_changed', 'iam.admin_access'],
       };
       if (!Object.hasOwn(accepted, query.metric)) return;
@@ -181,7 +200,7 @@ function archiveWorker() {
         if (!accepted[query.metric].includes(row.type)) continue;
         const key = query.metric === 'reads' ? row.user : row.type;
         if (!groups.has(key)) groups.set(key, { key, count: 0, example: row.raw });
-        const amount = query.metric === 'reads' ? row.raw.clinical?.count || 1 : 1;
+        const amount = query.metric === 'reads' ? Number(row.raw.clinical?.count ?? row.raw.count) || 1 : 1;
         groups.get(key).count += amount;
         total += amount;
       }
