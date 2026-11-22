@@ -79,7 +79,7 @@ globalThis.SocLogs = (() => {
     cell.textContent = message;
   }
 
-  function load(file) {
+  function load(file, dataset = corpus) {
     if (!worker) {
       const url = URL.createObjectURL(new Blob([`(${archiveWorker.toString()})();`], { type: 'text/javascript' }));
       worker = new Worker(url, { name: 'soc-investigation' });
@@ -101,12 +101,12 @@ globalThis.SocLogs = (() => {
     el('result-count').textContent = 'Carregando';
     el('apply-search').disabled = true;
     el('clear-search').disabled = true;
-    const source = file?.name || corpus;
+    const source = file?.name || dataset;
     loadState(`Carregando ${source}…`);
     globalThis.SocDashboard?.archiveState('Carregando base…');
     worker.postMessage({
-      type: 'load', source, file, url: file ? null : new URL(`logs/${corpus}`, location.href).href,
-      legacyUrl: !file && !hosted ? new URL(`logs/${corpus.slice(0, -3)}`, location.href).href : null,
+      type: 'load', source, file, url: file ? null : new URL(`logs/${dataset}`, location.href).href,
+      legacyUrl: !file && dataset === corpus && !hosted ? new URL(`logs/${corpus.slice(0, -3)}`, location.href).href : null,
     });
   }
 
@@ -374,6 +374,12 @@ globalThis.SocLogs = (() => {
     } else load();
   });
   el('import-logs').addEventListener('click', () => el('log-file').click());
+  el('load-example').addEventListener('click', () => {
+    if (location.protocol === 'file:') {
+      loadState('No modo local, selecione logs/clinica-exemplo.jsonl.');
+      el('log-file').click();
+    } else load(null, 'clinica-exemplo.jsonl');
+  });
   el('log-file').addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (file) load(file);
