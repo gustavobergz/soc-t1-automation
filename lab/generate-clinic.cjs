@@ -84,17 +84,44 @@ function row(index) {
   return record;
 }
 
+function quote(value) {
+  return `"${String(value ?? '').replaceAll('\\\\', '\\\\\\\\').replaceAll('"', '\\\\"')}"`;
+}
+
+function toTextLog(record) {
+  const clinical = record.clinical || {};
+  const fields = {
+    host: record.host, service: record.service, event: record.event_type,
+    user: record.username, src: record.source_ip, status: record.outcome,
+    severity: record.severity, role: record.role, device: record.device_id,
+    session: record.session_id, application: record.application,
+    ...(record.patient_ref && { patient_ref: record.patient_ref }),
+    ...(record.encounter_ref && { encounter_ref: record.encounter_ref }),
+    ...(clinical.count && { count: clinical.count }),
+    ...(clinical.record_count && { record_count: clinical.record_count }),
+    ...(clinical.care_assigned !== undefined && { care_assigned: clinical.care_assigned }),
+    ...(clinical.device_known !== undefined && { device_known: clinical.device_known }),
+    ...(clinical.shift_active !== undefined && { shift_active: clinical.shift_active }),
+    ...(clinical.approved !== undefined && { approved: clinical.approved }),
+    ...(record.scenario && { scenario: record.scenario }),
+    synthetic: true,
+    message: record.message,
+  };
+  return `${record.timestamp} ${Object.entries(fields).map(([key, value]) => `${key}=${quote(value)}`).join(' ')}`;
+}
+
 function* batches() {
+  yield `# DATASET CLINICA FICTICIA (${total} registros)\\n`;
   for (let start = 0; start < total; start += 500) {
-    yield Array.from({ length: Math.min(500, total - start) }, (_, index) => JSON.stringify(row(start + index))).join('\n') + '\n';
+    yield Array.from({ length: Math.min(500, total - start) }, (_, index) => toTextLog(row(start + index))).join('\n') + '\n';
   }
 }
 
 async function main() {
-  const target = process.argv[2] || path.join(__dirname, '../logs/clinica-investigacao-205k.jsonl.gz');
+  const target = process.argv[2] || path.join(__dirname, '../logs/clinica-investigacao-205k.txt.gz');
   if (target.endsWith('.gz')) await pipeline(batches(), createGzip({ level: 9 }), createWriteStream(target));
   else await pipeline(batches(), createWriteStream(target));
-  console.log(`${total} eventos inteiramente fictícios da clínica em ${target}`);
+  console.log(`${total} linhas de log inteiramente fictícias da clínica em ${target}`);
 }
 
 if (require.main === module) main().catch((error) => { console.error(error); process.exitCode = 1; });
