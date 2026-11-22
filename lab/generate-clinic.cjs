@@ -85,7 +85,7 @@ function row(index) {
 }
 
 function quote(value) {
-  return `"${String(value ?? '').replaceAll('\\\\', '\\\\\\\\').replaceAll('"', '\\\\"')}"`;
+  return JSON.stringify(String(value ?? ''));
 }
 
 function toTextLog(record) {
@@ -111,7 +111,7 @@ function toTextLog(record) {
 }
 
 function* batches() {
-  yield `# DATASET CLINICA FICTICIA (${total} registros)\\n`;
+  yield `# DATASET CLINICA FICTICIA (${total} registros)\n`;
   for (let start = 0; start < total; start += 500) {
     yield Array.from({ length: Math.min(500, total - start) }, (_, index) => toTextLog(row(start + index))).join('\n') + '\n';
   }
