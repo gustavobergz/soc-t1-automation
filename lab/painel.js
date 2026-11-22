@@ -143,7 +143,8 @@ function metrics() {
   const { started, detected, triaged, pending, approved, blocked } = current.marks;
   return {
     raw_events: current.rawCount, incidents: Number(detected !== undefined), detection_ms: elapsed(started, detected),
-    triage_ms: elapsed(detected, triaged), approval_ms: elapsed(pending, approved), response_ms: elapsed(detected, blocked),
+    triage_ms: elapsed(detected, triaged), decision_ms: elapsed(started, triaged),
+    approval_ms: elapsed(pending, approved), response_ms: elapsed(detected, blocked),
   };
 }
 
@@ -165,12 +166,53 @@ function showSessionMetrics() {
   }
   const automated = [...automation.values()].filter(Boolean).length;
   $('automation-rate').textContent = `Automação elegível ${automation.size ? `${percentage.format(automated / automation.size)} (${automated}/${automation.size})` : '—'}`;
+  showPairedDecisionMetrics();
+}
+
+function showPairedDecisionMetrics() {
+  const grouped = new Map();
+  for (const event of records) {
+    if (event.event !== 'panel.metrics' || !event.pair_id || !Number.isFinite(event.decision_ms) ||
+        !['manual', 'llm'].includes(event.mode)) continue;
+    const scenario = event.scenario || 'ssh_legacy';
+    const key = `${event.pair_id}::${scenario}`;
+    if (!grouped.has(key)) grouped.set(key, { pairId: event.pair_id, scenario, manual: [], llm: [] });
+    grouped.get(key)[event.mode].push(event.decision_ms);
+  }
+
+  const labels = {
+    stolen_account: 'Conta roubada', data_export: 'Exportação indevida',
+    privilege_change: 'Alteração de permissões', authorized_shift: 'Plantão autorizado',
+    ssh_legacy: 'SSH legado',
+  };
+  const completed = [];
+  const pending = [];
+  for (const pair of grouped.values()) {
+    if (pair.manual.length === 1 && pair.llm.length === 1) {
+      completed.push({ ...pair, delta: pair.llm[0] - pair.manual[0] });
+    } else {
+      pending.push(`${pair.pairId} · ${labels[pair.scenario] || pair.scenario}: par incompleto ou ambíguo (manual n=${pair.manual.length}, Ollama n=${pair.llm.length})`);
+    }
+  }
+
+  const lines = completed.map((pair) => {
+    const delta = pair.delta;
+    return `${pair.pairId} · ${labels[pair.scenario] || pair.scenario}: manual ${seconds.format(pair.manual[0] / 1000)} s; Ollama ${seconds.format(pair.llm[0] / 1000)} s; diferença ${delta > 0 ? '+' : ''}${seconds.format(delta / 1000)} s`;
+  });
+  if (completed.length) {
+    const meanDelta = completed.reduce((sum, pair) => sum + pair.delta, 0) / completed.length;
+    lines.unshift(`Pares completos: ${completed.length}. Diferença média Ollama − Manual: ${meanDelta > 0 ? '+' : ''}${seconds.format(meanDelta / 1000)} s. Valor positivo significa que o Ollama levou mais tempo.`);
+  } else {
+    lines.unshift('Sem pares completos. Para comparar, execute o mesmo cenário em Manual e Ollama local com o mesmo ID de par. A IA simulada não entra nesta comparação.');
+  }
+  $('paired-summary').textContent = [...lines, ...pending].join(' | ');
 }
 
 function recordMetrics(outcome) {
   if (current.measured) return;
   current.measured = true;
   records.push({ timestamp: new Date().toISOString(), vm: 'panel', event: 'panel.metrics', run: current.id, mode: current.mode,
+    scenario: current.scenario || 'ssh_legacy', pair_id: current.pairId || null,
     synthetic: true, message: 'Métricas observadas no painel para esta rodada.', outcome, ...metrics(),
     automation_eligible: automation.has(current.id), automatic_triage: automation.get(current.id) === true });
   showSessionMetrics();
@@ -458,7 +500,8 @@ function selectFilter(value) {
 }
 
 function run(mode) {
-  current = { id: `SOC-${Date.now()}${++sequence}`, mode, scenario: $('clinic-scenario').value, phase: 'collecting', rawCount: 0, marks: {}, evidence: new Set() };
+  current = { id: `SOC-${Date.now()}${++sequence}`, mode, scenario: $('clinic-scenario').value,
+    pairId: $('pair-id').value.trim(), phase: 'collecting', rawCount: 0, marks: {}, evidence: new Set() };
   vmState('attacker', 'Online');
   $('severity').textContent = mode === 'manual' ? 'MODO MANUAL' : 'EM ESPERA';
   $('severity').className = 'pill';
