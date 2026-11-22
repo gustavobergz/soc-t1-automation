@@ -41,7 +41,7 @@ O pedido de exportação indica intenção ou tentativa. A recusa da aplicação
 
 ## Logs e regras
 
-A base `logs/clinica-investigacao-205k.jsonl.gz` contém exatamente 205.000 eventos. Ela mistura rotina da clínica e os quatro cenários. Cada linha descompactada é um objeto JSON independente. O cenário ao vivo resume as consultas a prontuários em eventos com contagem. A base histórica expande as consultas em registros individuais para permitir seleção e investigação uma a uma.
+A base `logs/clinica-investigacao-205k.jsonl.gz` contém exatamente 205.000 eventos fictícios. Ela combina rotina da clínica e quatro cenários controlados. Cada linha descompactada é um objeto JSON independente. Os registros usam serviços, papéis, sessões e referências de paciente fictícios. A estrutura do log de referência foi adaptada para autenticação, portal clínico, prontuário, agenda, farmácia, IAM, DNS e backup. Nenhum nome, diagnóstico ou conteúdo real de prontuário é incluído. O cenário ao vivo resume consultas em eventos com contagem; a base histórica expande as consultas em registros individuais para permitir seleção e investigação uma a uma. Uma sequência curta para leitura está em `logs/clinica-exemplo.jsonl`.
 
 | Campo | Significado |
 | --- | --- |
@@ -146,7 +146,7 @@ O catálogo único dos cenários fica em `lab/clinic.json`, compartilhado entre 
 
 ## Validação realizada
 
-A base foi descompactada e conferida com 205.000 linhas JSON válidas, indicação sintética em todos os registros e 80 consultas individuais no cenário principal. Os fluxos foram exercitados pelo painel em convidados Linux no navegador e no VirtualBox instalado. Foram verificados os três incidentes, o controle benigno, a seleção manual de evidências, as severidades, a falha de triagem, o bloqueio após aprovação, a sessão legítima da mesma origem, a reversão, a auditoria, o chat estruturado e o gabarito da Arena. A suíte Go também foi executada nos convidados Linux.
+A base é gerada por `lab/generate-clinic.cjs` com 205.000 linhas JSON e marcador sintético em todos os registros. O arquivo `logs/clinica-exemplo.jsonl` ilustra o mapeamento de uma sequência de autenticação e acesso sem exibir dados clínicos reais. Os fluxos foram exercitados pelo painel em convidados Linux no navegador e no VirtualBox instalado. Foram verificados os três incidentes, o controle benigno, a seleção manual de evidências, as severidades, a falha de triagem, o bloqueio após aprovação, a sessão legítima da mesma origem, a reversão, a auditoria, o chat estruturado e o gabarito da Arena. A suíte Go também foi executada nos convidados Linux.
 
 Os indicadores de escala, dispositivo conhecido e autorização são fixtures do catálogo. O horário UTC da rodada ao vivo corresponde à execução, e o contexto de plantão é o contexto fictício definido para o exercício. Integrações com escala de pessoal, diretório corporativo e prontuário operacional precisam fornecer esses sinais em uma implantação real.
 
