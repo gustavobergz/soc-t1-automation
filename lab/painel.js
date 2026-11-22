@@ -3,7 +3,7 @@
 const $ = (id) => document.getElementById(id);
 const records = [];
 const ready = new Set();
-const vmNames = { attacker: 'Atacante', victim: 'Endpoint', manager: 'SIEM', soar: 'SOAR', panel: 'Painel' };
+const vmNames = { attacker: 'Origem', victim: 'Endpoint', manager: 'SIEM', soar: 'SOAR', panel: 'Painel' };
 const steps = ['detect', 'enrich', 'triage', 'approve-step', 'contain', 'ticket'];
 const defaults = Object.fromEntries(steps.map((step) => [step, $(step).querySelector('p').textContent]));
 const seconds = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
@@ -198,7 +198,7 @@ function operationError(message) {
 
 function expectEvent(delay = 30000) {
   clearTimeout(timeout);
-  timeout = setTimeout(() => operationError('Tempo limite na comunicação com as VMs.'), delay);
+  timeout = setTimeout(() => operationError('Tempo limite na comunicação com os serviços.'), delay);
 }
 
 async function command(role, line) {
@@ -228,7 +228,7 @@ function checkContained() {
     status(`${current.id} · Bloqueio verificado. Desbloqueie agora ou aguarde a expiração.`);
   }
   if (current.verified) {
-    setStep('contain', `${current.ttl} s de bloqueio · atacante HTTP 403${current.control ? ' · controle HTTP 204' : ''}.`);
+    setStep('contain', `${current.ttl} s de bloqueio · origem HTTP 403${current.control ? ' · controle HTTP 204' : ''}.`);
   }
 }
 
@@ -256,7 +256,7 @@ function checkProbe(event) {
       setStep('contain', `Sessão suspeita HTTP 403 · sessão legítima HTTP 204 · prazo ${current.ttl} s.`);
       break;
     case 'released':
-      setStep('contain', `${current.released === 'rollback' ? 'Desbloqueio manual' : 'Expiração automática'} verificado · atacante HTTP 204.`);
+      setStep('contain', `${current.released === 'rollback' ? 'Desbloqueio manual' : 'Expiração automática'} verificado · origem HTTP 204.`);
       finish('Origem liberada e verificada com HTTP 204.', 'released');
       break;
     case 'denied':
@@ -267,7 +267,7 @@ function checkProbe(event) {
       finish('Decisão de rejeição verificada com HTTP 204.', 'rejected');
       break;
     case 'monitoring':
-      setStep('contain', 'Acompanhamento · atacante recebeu HTTP 204.');
+      setStep('contain', 'Acompanhamento · origem recebeu HTTP 204.');
       finish('Caso registrado para acompanhamento. Origem liberada (HTTP 204).', 'monitoring');
       break;
   }
@@ -481,7 +481,7 @@ $('view-audit').addEventListener('click', () => globalThis.SocValidation?.openAu
 $('view-analysis').addEventListener('click', () => globalThis.SocAnalysis?.open(current.id));
 document.addEventListener('soc:shadow-preview', ({ detail }) => {
   if (detail.run === current?.id) {
-    const audit = { ...detail, vm: 'panel', message: 'Analista simulou o impacto no painel.' };
+    const audit = { ...detail, vm: 'panel', message: 'Analista consultou a prévia de impacto no painel.' };
     records.push(audit);
     globalThis.SocAnalysis?.ingest(audit);
     globalThis.SocValidation?.ingest(audit);
@@ -556,7 +556,7 @@ function useVirtualBox() {
       const response = await fetch('/api/command', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role, line }),
       });
-      if (!response.ok) throw new Error(`A VM ${vmNames[role]} recusou a operação (${response.status}).`);
+      if (!response.ok) throw new Error(`O serviço ${vmNames[role]} recusou a operação (${response.status}).`);
     },
   };
 }
@@ -570,7 +570,7 @@ async function boot() {
       await Promise.all(['lab/runtime/worker.js', 'lab/runtime/images.js', 'lab/emulator.js'].map(loadScript));
       lab = await SocEmulator.start(SOC_IMAGES, SOC_WORKER, onEvent, (role, error) => {
         console.error(role, error);
-        status(`Falha na VM ${vmNames[role]}. Reabra o arquivo no Chrome ou Edge.`, true);
+        status(`Falha no serviço ${vmNames[role]}. Reabra o arquivo no Chrome ou Edge.`, true);
       });
     } else {
       lab = useVirtualBox();
