@@ -123,7 +123,7 @@ globalThis.SocLogs = (() => {
         globalThis.SocDashboard?.archiveState('Base indisponível');
         el('result-count').textContent = 'Falha ao carregar';
         rows.replaceChildren();
-        showEmpty('Abra outro arquivo JSONL para continuar.');
+        showEmpty('Abra outro arquivo de log textual para continuar.');
         break;
       case 'loaded':
         loaded = data.total;
@@ -131,7 +131,7 @@ globalThis.SocLogs = (() => {
         globalThis.SocDashboard?.archive(data);
         if (data.legacyUrl) {
           el('download-corpus').href = data.legacyUrl;
-          el('download-corpus').textContent = 'Base de 205 mil eventos (.jsonl)';
+          el('download-corpus').textContent = 'Base de 205 mil logs (.txt)';
         }
         loadState(`${format.format(loaded)} registros · ${data.source}${data.invalid ? ` · ${format.format(data.invalid)} linhas inválidas ignoradas` : ''}`);
         el('search-type').replaceChildren(new Option('Todos', ''), ...data.types.map((type) => new Option(type, type)));
@@ -376,7 +376,7 @@ globalThis.SocLogs = (() => {
   el('import-logs').addEventListener('click', () => el('log-file').click());
   el('load-example').addEventListener('click', () => {
     if (location.protocol === 'file:') {
-      loadState('No modo local, selecione logs/clinica-exemplo.jsonl.');
+      loadState('No modo local, selecione logs/clinica-exemplo.txt.');
       el('log-file').click();
     } else load(null, 'clinica-exemplo.txt');
   });
