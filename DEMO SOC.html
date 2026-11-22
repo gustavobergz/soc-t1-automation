@@ -212,9 +212,9 @@
     <section id="investigation-view" class="investigation" aria-labelledby="investigation-title" hidden>
       <div class="archive-heading">
         <div><p class="eyebrow">RECURSO COMPLEMENTAR</p><h2 id="investigation-title">Explorador de logs</h2><p>Filtre eventos, confira a linha original e reúna evidências em um caso separado do playbook.</p></div>
-        <div class="actions"><button id="load-corpus" class="primary" type="button">Carregar base de 205 mil eventos</button><button id="load-example" type="button">Abrir amostra clínica (8 eventos)</button><button id="import-logs" type="button">Importar logs</button><a class="button" href="logs/clinica-exemplo.txt" download>Baixar amostra clínica</a><input id="log-file" type="file" accept=".txt,.log,.jsonl,.ndjson,.gz,text/plain,application/x-ndjson,application/gzip" hidden></div>
+        <div class="actions"><button id="load-corpus" class="primary" type="button">Carregar base de 205 mil eventos</button><button id="load-example" type="button">Abrir amostra clínica (8 eventos)</button><button id="import-logs" type="button">Importar logs</button><a class="button" href="logs/clinica-exemplo.txt" download>Baixar amostra clínica</a><input id="log-file" type="file" accept=".txt,.log,.gz,text/plain,application/gzip" hidden></div>
       </div>
-      <p id="load-state" class="dataset-state" role="status">Carregue a base sintética ou abra um arquivo JSONL.</p>
+      <p id="load-state" class="dataset-state" role="status">Carregue a base textual sintética ou abra um arquivo .txt/.log.</p>
 
       <div class="investigation-grid">
         <section class="panel archive-results" aria-label="Resultados da busca">
@@ -386,7 +386,7 @@
       <p id="detail-message"></p><pre id="detail-json"></pre>
       <div class="actions"><button id="detail-select" type="button" class="compact primary" hidden>Marcar como evidência</button><button id="detail-pivot" type="button" class="compact" hidden>Filtrar por este IP</button></div>
     </dialog>
-    <footer><p>Clínica e dados fictícios. A contenção suspende uma sessão no serviço HTTP do laboratório.</p><div><a href="logs/clinica-demo.jsonl" download>Log das rodadas</a><a id="download-corpus" href="logs/clinica-investigacao-205k.jsonl.gz" download>Base de 205 mil eventos (.gz)</a></div></footer>
+    <footer><p>Clínica e dados fictícios. A contenção suspende uma sessão no serviço HTTP do laboratório.</p><div><a href="logs/clinica-demo.jsonl" download>Log das rodadas</a><a id="download-corpus" href="logs/clinica-investigacao-205k.txt.gz" download>Base de 205 mil logs (.txt.gz)</a></div></footer>
     <noscript>Ative o JavaScript no navegador para inicializar as VMs.</noscript>
   </main>
   </div>
