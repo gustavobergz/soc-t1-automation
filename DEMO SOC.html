@@ -158,7 +158,7 @@
         </div>
         <div class="filters" aria-label="Filtrar por serviço">
           <button type="button" data-filter="all" aria-pressed="true">Todas</button>
-          <button type="button" data-filter="attacker" aria-pressed="false">Atacante</button>
+          <button type="button" data-filter="attacker" aria-pressed="false">Origem</button>
           <button type="button" data-filter="victim" aria-pressed="false">Endpoint</button>
           <button type="button" data-filter="manager" aria-pressed="false">SIEM</button>
           <button type="button" data-filter="soar" aria-pressed="false">SOAR</button>
@@ -249,7 +249,7 @@
           <ul id="case-evidence" class="case-evidence" aria-label="Registros marcados"></ul>
           <button id="export-case" type="button" class="compact" disabled>Exportar caso JSON</button>
           <button id="case-analysis" type="button" class="compact" disabled>Analisar evidências</button>
-          <p id="case-storage" class="dataset-state" role="status">Casos locais do explorador são separados da contenção ao vivo.</p>
+          <p id="case-storage" class="dataset-state" role="status">Casos salvos neste navegador são separados das ações de contenção do ambiente.</p>
         </aside>
       </div>
     </section>
@@ -348,7 +348,7 @@
       <div class="validation-grid">
         <section class="panel scope-panel"><div class="panel-header"><h2>O que roda no laboratório</h2></div>
           <dl class="scope-list">
-            <div><dt>Quatro VMs Linux</dt><dd>Convidados Linux inicializados pelo v86 no navegador ou pelo VirtualBox no Windows. As VMs trocam mensagens na rede isolada. Login, prontuário e IAM são reproduções sintéticas.</dd></div>
+            <div><dt>Quatro serviços isolados</dt><dd>Serviços Linux iniciados pelo v86 no navegador ou pelo VirtualBox no Windows. Eles trocam mensagens na rede isolada. Login, prontuário e IAM são reproduções sintéticas.</dd></div>
             <div><dt>Wazuh e n8n</dt><dd>O coletor e o playbook em Go representam, respectivamente, Wazuh Manager/Agent e n8n. Os produtos de referência da seção 15 ainda precisam ser implantados e validados com eventos reais.</dd></div>
             <div><dt>Contenção</dt><dd>O endpoint suspende a sessão de teste no serviço HTTP da demo e mantém a sessão de controle acessível. Wazuh Active Response ou firewall ficam para a implantação com agentes reais. A política protege SIEM, SOAR e endpoint e exige aprovação humana.</dd></div>
             <div><dt>Contexto local</dt><dd>As regras da clínica utilizam escala, autorização e função da conta em dados fictícios. O laboratório anterior de SSH mantém uma reputação sintética. Os eventos ficam fora de consultas ao AbuseIPDB e ao VirusTotal.</dd></div>
@@ -363,7 +363,7 @@
           </dl>
         </section>
         <section class="panel scope-panel"><div class="panel-header"><h2>Avaliação do detector</h2><a href="#operacao">Executar na operação ↗</a></div>
-          <p id="benchmark-state" class="dataset-state" role="status">Aguardando execução na VM SIEM.</p>
+          <p id="benchmark-state" class="dataset-state" role="status">Aguardando avaliação do serviço SIEM.</p>
           <div class="metric-summary"><span id="benchmark-fp">Falsos positivos —</span><span id="benchmark-fn">Falsos negativos —</span><span id="benchmark-confusion">VP e VN —</span></div>
           <div class="table-scroll"><table class="overview-table"><thead><tr><th scope="col">Cenário rotulado</th><th scope="col">Verdade</th><th scope="col">Detector</th><th scope="col">Resultado</th></tr></thead><tbody id="benchmark-cases"><tr><td colspan="4">Os cenários aparecem após a avaliação.</td></tr></tbody></table></div>
           <p class="dataset-state">FPR = FP/(FP+VN). FNR = FN/(FN+VP). Amostra controlada do detector, sem extrapolação para produção ou para decisões humanas.</p>
@@ -383,7 +383,7 @@
       <div class="actions"><button id="detail-select" type="button" class="compact primary" hidden>Marcar como evidência</button><button id="detail-pivot" type="button" class="compact" hidden>Filtrar por este IP</button></div>
     </dialog>
     <footer><p>Dados da clínica são fictícios. A contenção demonstrada suspende uma sessão de teste no serviço HTTP.</p><div><a href="logs/clinica-demo.jsonl" download>Log das rodadas</a><a id="download-corpus" href="logs/clinica-investigacao-205k.jsonl.gz" download>Base de 205 mil eventos (.gz)</a></div></footer>
-    <noscript>Ative o JavaScript no navegador para inicializar as VMs.</noscript>
+    <noscript>Ative o JavaScript no navegador para carregar os serviços do ambiente.</noscript>
   </main>
   </div>
 </body>
