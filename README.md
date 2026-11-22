@@ -1,18 +1,18 @@
-# SOC Clínica com IA local
+# SOC Clínica · Autonomous SOC Tier 1
 
-Laboratório acadêmico de SOC para investigar atividades suspeitas em uma clínica fictícia. A simulação cobre conta médica roubada, exportação indevida, alteração de permissões e um plantão autorizado de comparação. Os dados são inteiramente fictícios. O analista revisa as evidências e decide sobre a contenção.
+Aplicação demonstrativa de um fluxo SOC Tier 1 para investigação e resposta a alertas em uma clínica. A interface reúne eventos, evidências, triagem, aprovação humana e registro de casos. Contas, pacientes e eventos são dados mockados, criados para apresentar como o fluxo funcionaria em operação.
 
 [**Abrir a demonstração**](https://gustavobergz.github.io/soc-t1-automation/)
 
 ## Começar
 
-- **Análise de incidentes** abre rodadas registradas, replay, história, contraprovas, lacunas e comprovante em JSON.
-- **Investigar logs** carrega 205.000 eventos da clínica. Busque `MED-017`, `REC-004` ou `ENF-009`, selecione evidências individuais e salve um caso.
-- **Operação ao vivo** executa o cenário escolhido nas quatro VMs. Compare triagem manual, resposta simulada e Ollama local.
-- **SOC Arena** apresenta os quatro cenários com classificação e escolha da evidência decisiva.
-- **Método e auditoria** apresenta a política, as métricas e a avaliação controlada do detector.
+- **Análise de incidentes** reúne atendimentos registrados, histórico, evidências, revisão e comprovantes em JSON.
+- **Investigar logs** carrega uma base de demonstração com 205.000 eventos. Busque `MED-017`, `REC-004` ou `ENF-009`, selecione evidências individuais e salve um caso.
+- **Atendimento de alertas** processa o fluxo selecionado no ambiente local. Compare triagem manual, resposta de referência e Ollama local.
+- **Treinamento** apresenta fluxos de demonstração com classificação e escolha da evidência decisiva.
+- **Qualidade e auditoria** apresenta a política, as métricas e a avaliação controlada do detector.
 
-O site público usa uma triagem simulada identificada. O modo com modelo real usa Ollama no computador pelo iniciador VirtualBox.
+A interface usa dados de demonstração. No site, a triagem assistida apresenta uma resposta de referência identificada; no modo local, a aplicação pode consultar o Ollama pelo iniciador VirtualBox.
 
 ## Windows com IA local
 
@@ -25,13 +25,13 @@ A configuração inicial usa internet. O instalador baixa cerca de 46 MB de comp
 
 O servidor de inferência iniciado pelo projeto usa `127.0.0.1:11434` com recursos de nuvem desativados. O conector envia contagens, indicadores e IDs de evidência. Os arquivos do serviço e os pesos ficam em `%LOCALAPPDATA%\SOC-Tier1`. A entrada e a saída validadas podem ser inspecionadas na triagem em JSON. [Documentação do Ollama](https://docs.ollama.com/faq)
 
-Para executar com triagem simulada, abra **INICIAR VIRTUALBOX.cmd**. O site também executa as VMs pelo v86 no navegador. O laboratório SSH anterior continua selecionável. Para encerrar as VMs criadas pelo projeto, execute `powershell -File .\VirtualBox.ps1 -Mode Stop`.
+Para executar o ambiente local com os dados de demonstração, abra **INICIAR VIRTUALBOX.cmd**. O site também executa as VMs pelo v86 no navegador. O laboratório SSH anterior continua selecionável. Para encerrar as VMs criadas pelo projeto, execute `powershell -File .\VirtualBox.ps1 -Mode Stop`.
 
 ## Documentação e demonstração
 
 O [manual do repositório e das páginas](DOCUMENTACAO_REPOSITORIO.md) explica as sete telas, as tecnologias utilizadas, a organização do código e como executar o laboratório. Inclui capturas do sistema e exemplos de investigação. [Baixar o manual em Word](docs/Manual_SOC_Clinica.docx).
 
-A [documentação da simulação](DOCUMENTACAO_SIMULACAO.md) explica os cenários, o fluxo de dados, as regras, os campos de logs, a IA local, os controles de privacidade, as métricas e um roteiro de apresentação de oito minutos. O [guia rápido](LEIA-ME.md) resume a apresentação.
+A [documentação técnica](DOCUMENTACAO_SIMULACAO.md) explica os fluxos de demonstração, o fluxo de dados, as regras, os campos de logs, a IA local, os controles de privacidade, as métricas e um roteiro de apresentação de oito minutos. O [guia rápido](LEIA-ME.md) resume a apresentação.
 
 A contenção suspende uma sessão de teste no serviço HTTP por 45 s, após aprovação. O painel verifica que a sessão legítima da mesma origem continua acessível e permite reversão antecipada. A autenticação, o prontuário e o IAM são reproduções sintéticas. O coletor e o playbook em Go representam os papéis de Wazuh e n8n. A integração com os produtos originais e dados operacionais exige uma etapa própria.
 
