@@ -125,7 +125,9 @@
 
     <section class="controls" aria-label="Executar cenário">
       <label>Escolha o cenário<select id="clinic-scenario"><option value="">Laboratório anterior · SSH</option></select></label>
+      <label>ID do par Manual/Ollama<input id="pair-id" type="text" maxlength="40" placeholder="Ex.: conta-01" autocomplete="off"></label>
       <p id="clinic-brief" class="analysis-lead">Carregando as situações da clínica.</p>
+      <p>Para comparar, use o mesmo cenário e o mesmo ID uma vez em cada modo. Gere um ID novo para cada par; alterne qual modo executa primeiro.</p>
       <div class="actions">
         <button id="manual" type="button" disabled>1. Rodada manual</button>
         <button id="auto" class="primary" type="button" disabled>2. Assistida · IA simulada</button>
@@ -139,15 +141,17 @@
       <div class="panel-header"><div><p class="eyebrow">EXPERIMENTO CONTROLADO</p><h2 id="metrics-title">Métricas por rodada</h2></div><button id="benchmark" type="button" class="compact" disabled>Avaliar detector</button></div>
       <div class="table-scroll">
         <table>
-          <thead><tr><th scope="col">Fluxo</th><th scope="col">Eventos brutos</th><th scope="col">Incidentes</th><th scope="col">Detecção</th><th scope="col">Triagem</th><th scope="col">Aprovação</th><th scope="col">Resposta</th></tr></thead>
+          <thead><tr><th scope="col">Fluxo</th><th scope="col">Eventos brutos</th><th scope="col">Incidentes</th><th scope="col">Detecção</th><th scope="col">Triagem</th><th scope="col">Atividade → decisão inicial</th><th scope="col">Aprovação</th><th scope="col">Resposta</th></tr></thead>
           <tbody>
-            <tr id="metrics-manual"><th scope="row">Manual</th><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-            <tr id="metrics-auto"><th scope="row">Assistido</th><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr id="metrics-manual"><th scope="row">Manual</th><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr id="metrics-auto"><th scope="row">Assistido</th><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
           </tbody>
         </table>
       </div>
-      <p>MTTR = média do tempo entre a identificação do incidente (início do tratamento) e a aplicação do bloqueio HTTP, incluindo a aprovação humana. Só entram rodadas com contenção aplicada. <a href="#validacao">Ver método e resultados</a></p>
+      <p>Atividade → decisão inicial = do início da rodada até a classificação inicial registrada. Em Manual, inclui a análise e seleção humana das evidências; em Ollama, inclui detecção e inferência. Use pares completos para comparar o mesmo cenário. A saída de IA simulada fica fora dessa comparação.</p>
+      <p>MTTR = média entre detecção e bloqueio HTTP aplicado, incluindo a aprovação humana. Só entram rodadas com contenção aplicada. <a href="#validacao">Ver método e resultados</a></p>
       <div class="metric-summary"><span id="mttr-manual">MTTR manual —</span><span id="mttr-auto">MTTR assistido —</span><span id="automation-rate">Automação elegível —</span></div>
+      <p id="paired-summary" aria-live="polite">Sem pares completos. Para comparar, execute o mesmo cenário em Manual e Ollama local com o mesmo ID de par.</p>
     </section>
 
     <div class="operations">
