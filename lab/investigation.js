@@ -276,7 +276,7 @@ globalThis.SocLogs = (() => {
   function selectCase(item) {
     currentCase = item || { id: crypto.randomUUID(), title: '', severity: '', status: 'investigando', notes: '', evidence: {} };
     for (const [key, id] of Object.entries(caseInputs)) el(id).value = currentCase[key] || '';
-    el('case-storage').textContent = item ? 'Caso local aberto.' : 'Marque um registro para iniciar um caso local.';
+    el('case-storage').textContent = item ? 'Caso aberto neste navegador.' : 'Marque registros para criar um caso.';
     showCaseList();
     renderEvidence();
     for (const [key, checkbox] of checkboxes) {
