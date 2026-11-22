@@ -61,7 +61,7 @@ O fluxo central é atividade fictícia → auditoria da clínica → correlaçã
 | HTML5 e CSS3 | Estrutura do painel, navegação, tabelas, cartões, estados e layout adaptável. |
 | JavaScript sem framework | Controle das sete páginas e dos componentes. A interface não depende de React. |
 | Web Workers e Streams | Leitura e busca dos logs fora da execução principal da interface. DecompressionStream abre o arquivo gzip. |
-| JSON, JSONL e gzip | Catálogo de cenários, eventos por linha, trilhas de demonstração e base compactada. |
+| JSON, logs chave-valor em texto e gzip | Catálogo de cenários, trilhas de demonstração e base compactada de investigação. |
 | localStorage | Persistência dos casos e de conclusões revisadas no perfil do navegador. |
 | Go | Aplicação das VMs, eventos, correlação, regras, política de resposta e validação da triagem. O módulo declara Go 1.25.0. |
 | Node.js | Ponte local HTTP entre o painel, as portas seriais das VMs e o serviço Ollama; scripts de geração e preparação. |
@@ -76,7 +76,7 @@ O fluxo central é atividade fictícia → auditoria da clínica → correlaçã
 
 Os quatro convidados representam SIEM/coletor, aplicação da clínica, reprodutor de atividade e SOAR. Os serviços próprios em Go representam os papéis propostos para Wazuh e n8n. O repositório não instala Wazuh Manager, Agent, Dashboard, n8n ou Shuffle como produtos completos.
 
-A base histórica é um arquivo JSONL compactado. Os casos usam armazenamento do navegador. Não há um banco SQL central nem treinamento do modelo com 205 mil logs. O tamanho da base não determina o tamanho da entrada da IA: somente um resumo estruturado do incidente selecionado é enviado.
+A base histórica será um arquivo de texto chave-valor compactado após a regeneração do corpus. Os casos usam armazenamento do navegador. Não há um banco SQL central nem treinamento do modelo com 205 mil logs. O tamanho da base não determina o tamanho da entrada da IA: somente um resumo estruturado do incidente selecionado é enviado.
 
 Código de referência: [lab/go.mod](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/go.mod), [lab/virtualbox.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/virtualbox.cjs), [lab/ollama.cjs](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/lab/ollama.cjs), [THIRD_PARTY_NOTICES.md](https://github.com/gustavobergz/soc-t1-automation/blob/4fe70d93d27ab42db2e1fa3f5be6650924aba3f7/THIRD_PARTY_NOTICES.md).
 
@@ -134,7 +134,7 @@ Código de referência: [lab/painel.js](https://github.com/gustavobergz/soc-t1-a
 
 ![Figura 3 Pesquisa e seleção individual de evidências](docs/imagens/03-investigar.png)
 
-A página carrega logs/clinica-investigacao-205k.jsonl.gz, com 205.000 registros fictícios. Cada linha descompactada é um objeto JSON independente. Um Web Worker processa a base, e a tabela mostra os resultados por páginas de 50 ou 100 registros.
+A página carrega logs/clinica-investigacao-205k.txt.gz, com 205.000 registros fictícios. Cada linha descompactada contém timestamp ISO e campos no padrão textual `chave="valor"`. Um Web Worker processa a base, e a tabela mostra os resultados por páginas de 50 ou 100 registros.
 
 ### Uma investigação reproduzível
 
@@ -355,11 +355,11 @@ Código de referência: [README.md](https://github.com/gustavobergz/soc-t1-autom
 
 ### Reproduzir a base
 
-Na raiz do projeto, execute o gerador em Node.js. O primeiro comando produz a base compactada padrão; o segundo permite obter uma cópia JSONL sem compressão.
+Na raiz do projeto, execute o gerador em Node.js. O primeiro comando produz a base compactada padrão; o segundo permite obter uma cópia TXT sem compressão.
 
 ```powershell
 node lab/generate-clinic.cjs
-node lab/generate-clinic.cjs logs/clinica-investigacao-205k.jsonl
+node lab/generate-clinic.cjs logs/clinica-investigacao-205k.txt
 ```
 
 ### Onde os dados ficam
