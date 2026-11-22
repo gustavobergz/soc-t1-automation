@@ -36,7 +36,7 @@ globalThis.SocAnalysis = (() => {
   }
 
   function runLabel(run) {
-    const prefix = { sample: 'amostra', session: 'sessão', import: 'importada', case: 'caso local', training: 'treinamento fictício' };
+    const prefix = { sample: 'amostra', session: 'sessão', import: 'importada', case: 'caso local', training: 'treinamento' };
     return `${run.title || run.id} · ${prefix[run.source]}`;
   }
 
@@ -87,7 +87,7 @@ globalThis.SocAnalysis = (() => {
       ? 'Sugestão: confira manutenção autorizada e validade da conta antes de escalar.'
       : 'Sugestão: investigue as diferenças antes de reaproveitar a resolução.';
     el('memory-summary').textContent = matches.length
-      ? `${matches.length} ${reviewed ? 'da memória revisada' : 'da memória fictícia de demonstração'} · ${falsePositives} ${falsePositives === 1 ? 'falso positivo' : 'falsos positivos'}. ${suggestion}`
+      ? `${matches.length} ${reviewed ? 'da memória revisada' : 'da memória de demonstração'} · ${falsePositives} ${falsePositives === 1 ? 'falso positivo' : 'falsos positivos'}. ${suggestion}`
       : 'Nenhuma resolução semelhante encontrada nas fontes disponíveis.';
     const items = matches.map((match) => {
       const item = document.createElement('li');
@@ -113,18 +113,18 @@ globalThis.SocAnalysis = (() => {
   function renderShadow() {
     el('shadow-json').hidden = !preview;
     if (!preview) {
-      el('shadow-result').textContent = 'Simule o impacto da política local para esta rodada.';
+      el('shadow-result').textContent = 'Prévia do impacto da política local para este fluxo.';
       fillList('shadow-items', []);
       return;
     }
     const eligible = preview.predicted_source_status === 403;
-    el('shadow-result').textContent = eligible ? 'Previsão · contenção limitada à sessão de teste no serviço HTTP.' : 'Previsão · política não aplicaria contenção.';
+    el('shadow-result').textContent = eligible ? 'Previsão · contenção limitada à sessão de demonstração no serviço HTTP.' : 'Previsão · política não aplicaria contenção.';
     fillList('shadow-items', eligible ? [
       `${preview.source_ip} → ${preview.target_ip}: HTTP 403 previsto por ${preview.ttl_seconds} s.`,
       `Sonda de controle: HTTP ${preview.predicted_control_status} previsto.`,
       ...(preview.session_id ? [`Sessão afetada: ${preview.session_id}. Outras sessões permanecem elegíveis para acesso.`] : []),
-      'A simulação não envia tráfego, não muda regras e não aprova o bloqueio.',
-    ] : [preview.reason, 'A simulação não alterou o serviço.']);
+      'Esta prévia não envia tráfego, não altera regras e não autoriza o bloqueio.',
+    ] : [preview.reason, 'A prévia não alterou o serviço.']);
   }
 
   function link(label, action) {
@@ -160,7 +160,7 @@ globalThis.SocAnalysis = (() => {
       ? `${SocLogs.severity(decision.severity)} · ${decision.rule_id ? 'Regra ' + decision.rule_id : 'Triagem sem regra automática registrada'} · ${decision.provider} · ${decision.evidence_ids.length} evidências. ${decision.reason}`
       : 'A rodada ainda não tem triagem registrada.';
     if (decision?.model_suggested_severity) {
-      el('receipt-status').textContent += ` Sugestão ${decision.provider === 'fixture' ? 'simulada' : 'da IA'}: ${SocLogs.severity(decision.model_suggested_severity)}${decision.severity_disagreement ? ' · divergência para revisão.' : '.'}`;
+      el('receipt-status').textContent += ` Sugestão ${decision.provider === 'fixture' ? 'de referência' : 'do modelo'}: ${SocLogs.severity(decision.model_suggested_severity)}${decision.severity_disagreement ? ' · divergência para revisão.' : '.'}`;
     }
     fillList('receipt-actions', decision?.recommendations.map((action) => Object.hasOwn(recommendationLabels, action) ? recommendationLabels[action] : action) || []);
     const evidence = new Map(events.filter((event) => typeof event.event_id === 'string').map((event) => [event.event_id, event]));
@@ -434,7 +434,7 @@ globalThis.SocAnalysis = (() => {
       const metric = /exporta/.test(text) ? 'exports' : /permiss/.test(text) ? 'permissions' : 'reads';
       const data = await SocLogs.archiveAnalysis({ kind: 'clinic_activity', metric });
       if (!data) { response.textContent = 'Abra a base em Investigar logs e envie a pergunta novamente.'; return; }
-      const labels = { reads: 'consultas a prontuários fictícios', exports: 'eventos de solicitação ou recusa de exportação', permissions: 'eventos de permissões' };
+      const labels = { reads: 'consultas a prontuários de demonstração', exports: 'eventos de solicitação ou recusa de exportação', permissions: 'eventos de permissões' };
       response.textContent = `${data.result.total.toLocaleString('pt-BR')} ${labels[metric]} na base carregada · ${data.source}. Solicitação não comprova entrega de dados.`;
       for (const group of data.result.top) item.append(link(`${group.key} · ${group.count} · ver evidência`, () => SocLogs.showDetails(group.example)));
     } else if (/\bips?\b/.test(text) && /falh|tentativ|login/.test(text)) {
