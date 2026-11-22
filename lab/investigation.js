@@ -5,7 +5,7 @@ globalThis.SocLogs = (() => {
   const format = new Intl.NumberFormat('pt-BR');
   const labels = { alta: 'Alta', media: 'Média', baixa: 'Baixa', info: 'Informativa' };
   const severity = (value) => Object.hasOwn(labels, value) ? labels[value] : 'Sem nível';
-  const corpus = 'clinica-investigacao-205k.txt.gz';
+  const corpus = 'clinica-investigacao-205k.txt';
   const hosted = location.protocol !== 'file:' && location.origin !== 'http://127.0.0.1:8771';
   const storageKey = 'soc-tier1-cases-v1';
   const form = el('search-logs');
@@ -106,7 +106,7 @@ globalThis.SocLogs = (() => {
     globalThis.SocDashboard?.archiveState('Carregando base…');
     worker.postMessage({
       type: 'load', source, file, url: file ? null : new URL(`logs/${dataset}`, location.href).href,
-      legacyUrl: !file && dataset === corpus && !hosted ? new URL(`logs/${corpus.slice(0, -3)}`, location.href).href : null,
+      legacyUrl: null,
     });
   }
 
