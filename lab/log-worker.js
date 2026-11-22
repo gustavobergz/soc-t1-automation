@@ -117,12 +117,12 @@ function archiveWorker() {
         tail = lines.pop();
         if (tail.length > 2_000_000) {
           await reader.cancel();
-          throw new Error('O arquivo tem uma linha muito longa. Confira se está em formato JSONL.');
+          throw new Error('O arquivo tem uma linha muito longa. Confira se está em formato de log textual.');
         }
         for (const text of lines) read(text);
       }
       if (tail) read(tail);
-      if (loaded.length === 0) throw new Error('Nenhum objeto JSON válido encontrado. Use um objeto por linha.');
+      if (loaded.length === 0) throw new Error('Nenhuma linha de log reconhecida. Use timestamp ISO e campos no formato chave="valor".');
       loaded.sort((a, b) => (a.time || 0) - (b.time || 0));
       records = loaded;
       archiveSource = source;
