@@ -10,7 +10,7 @@ function archiveWorker() {
   const normalizeSeverity = (value) => ({ high: 'alta', medium: 'media', low: 'baixa', média: 'media', informational: 'info' })[value] || value;
 
   function parseTextLog(text, line) {
-    const timestamp = text.match(/^(\\S+)/)?.[1];
+    const timestamp = text.match(/^(\S+)/)?.[1];
     const fields = Object.create(null);
     const pattern = /([A-Za-z_][\w.-]*)=(?:"((?:\\.|[^"])*)"|(\S+))/g;
     for (const match of text.matchAll(pattern)) {
