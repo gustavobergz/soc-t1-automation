@@ -376,7 +376,7 @@ Código de referência: [lab/build-virtualbox.py](https://github.com/gustavoberg
 
 ### Da proposta acadêmica à implementação
 
-O TCC fornecido descreve o fluxo original de abuso de SSH, Wazuh, enriquecimento, LLM e resposta com aprovação. O texto de apresentação propõe uma abordagem mais ampla sobre segurança de agentes autônomos e impacto no negócio. O repositório atual é uma prova de conceito defensiva em saúde, com escopo delimitado e conta roubada como cenário principal.
+O TCC fornecido descreve o fluxo original de abuso de SSH, Wazuh, enriquecimento, LLM e resposta com aprovação. O texto de apresentação propõe uma abordagem mais ampla sobre segurança de agentes autônomos e impacto no negócio. O repositório atual é uma prova de conceito defensiva em saúde, com escopo delimitado e conta roubada como cenário principal. A proposta revisada para alinhar o texto acadêmico ao cenário atual está em [docs/TCC_SECOES_CLINICA_205K.md](docs/TCC_SECOES_CLINICA_205K.md); ela descreve a clínica fictícia e os 205.000 eventos sintéticos, sem atribuir resultados medidos. Esse arquivo é texto-base para incorporar ao DOCX do TCC.
 
 | Tema dos materiais | Como aparece no repositório atual |
 | --- | --- |
