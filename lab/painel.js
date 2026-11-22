@@ -143,7 +143,7 @@ function metrics() {
   const { started, detected, triaged, pending, approved, blocked } = current.marks;
   return {
     raw_events: current.rawCount, incidents: Number(detected !== undefined), detection_ms: elapsed(started, detected),
-    triage_ms: elapsed(detected, triaged), decision_ms: elapsed(started, triaged),
+    triage_ms: elapsed(detected, triaged), decision_ms: elapsed(current.marks.first_event, triaged),
     approval_ms: elapsed(pending, approved), response_ms: elapsed(detected, blocked),
   };
 }
@@ -201,7 +201,8 @@ function showPairedDecisionMetrics() {
   });
   if (completed.length) {
     const meanDelta = completed.reduce((sum, pair) => sum + pair.delta, 0) / completed.length;
-    lines.unshift(`Pares completos: ${completed.length}. Diferença média Ollama − Manual: ${meanDelta > 0 ? '+' : ''}${seconds.format(meanDelta / 1000)} s. Valor positivo significa que o Ollama levou mais tempo.`);
+    const faster = completed.filter((pair) => pair.delta < 0).length;
+    lines.unshift(`Pares completos: ${completed.length}. Ollama mais rápido em ${faster}/${completed.length} pares. Diferença média Ollama − Manual: ${meanDelta > 0 ? '+' : ''}${seconds.format(meanDelta / 1000)} s. Valor positivo significa que o Ollama levou mais tempo.`);
   } else {
     lines.unshift('Sem pares completos. Para comparar, execute o mesmo cenário em Manual e Ollama local com o mesmo ID de par. A IA simulada não entra nesta comparação.');
   }
@@ -350,6 +351,7 @@ function onEvent(event) {
       current.marks.started = now;
       break;
     case 'siem.raw':
+      current.marks.first_event ??= now;
       current.rawCount++;
       break;
     case 'attack.finished':
