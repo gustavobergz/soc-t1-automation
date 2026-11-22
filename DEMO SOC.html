@@ -199,7 +199,7 @@
           <li id="triage"><span class="step-number">03</span><div><strong>Triar</strong><p>JSON validado. Fixture no navegador e Ollama opcional no VirtualBox.</p></div></li>
           <li id="approve-step"><span class="step-number">04</span><div><strong>Validar política e aprovar</strong><p>Somente a origem de teste é elegível. SIEM, endpoint e SOAR são protegidos.</p></div></li>
           <li id="contain"><span class="step-number">05</span><div><strong>Conter e verificar</strong><p>Suspenda a sessão de teste por 45 s e confira a sessão legítima. Há reversão antecipada.</p></div></li>
-          <li id="ticket"><span class="step-number">06</span><div><strong>Registrar e notificar</strong><p>Ticket local, notificação simulada e auditoria em JSONL.</p></div></li>
+          <li id="ticket"><span class="step-number">06</span><div><strong>Registrar e notificar</strong><p>Registro local, notificação de demonstração e trilha em JSONL.</p></div></li>
         </ol>
       </section>
     </div>
@@ -254,7 +254,7 @@
       </div>
     </section>
     <section id="analysis-view" aria-labelledby="analysis-title" hidden>
-      <div class="view-heading"><div><p class="eyebrow">REVISÃO DEFENSIVA</p><h1 id="analysis-title">Análise de incidentes</h1><p>Reproduza o histórico, confronte a triagem e simule o impacto antes de decidir.</p></div><span class="environment-badge">EVIDÊNCIAS DA RODADA</span></div>
+      <div class="view-heading"><div><p class="eyebrow">REVISÃO DEFENSIVA</p><h1 id="analysis-title">Análise de incidentes</h1><p>Revise o histórico, confronte a triagem e avalie a prévia de impacto antes de decidir.</p></div><span class="environment-badge">EVIDÊNCIAS DA RODADA</span></div>
       <div class="panel analysis-source">
         <label>Rodada<select id="analysis-run"><option value="">Aguardando histórico</option></select></label>
         <button id="analysis-import" type="button" class="compact">Importar trilha JSONL</button><input id="analysis-file" type="file" accept=".jsonl,.ndjson" hidden>
@@ -279,10 +279,10 @@
           <ul id="gap-items" class="analysis-list"><li class="overview-empty">Aguardando uma rodada.</li></ul>
         </section>
         <section class="panel analysis-card" aria-labelledby="shadow-title">
-          <div class="panel-header"><div><p class="eyebrow">SHADOW MODE</p><h2 id="shadow-title">Impacto previsto</h2></div><button id="shadow-test" class="compact" type="button" disabled>Simular impacto</button></div>
-          <p id="shadow-result" class="analysis-lead" role="status">Selecione uma rodada e simule o efeito no serviço de teste.</p>
+          <div class="panel-header"><div><p class="eyebrow">SHADOW MODE</p><h2 id="shadow-title">Impacto previsto</h2></div><button id="shadow-test" class="compact" type="button" disabled>Avaliar impacto</button></div>
+          <p id="shadow-result" class="analysis-lead" role="status">Selecione uma rodada e consulte o efeito previsto no serviço de demonstração.</p>
           <ul id="shadow-items" class="analysis-list"></ul>
-          <button id="shadow-json" class="compact" type="button" hidden>Ver simulação em JSON</button>
+          <button id="shadow-json" class="compact" type="button" hidden>Ver prévia em JSON</button>
         </section>
         <section class="panel analysis-card memory-panel" aria-labelledby="memory-title">
           <div class="panel-header"><div><p class="eyebrow">SOC MEMORY</p><h2 id="memory-title">Casos semelhantes</h2></div><span class="pill">MEMÓRIA DO NAVEGADOR</span></div>
@@ -323,7 +323,7 @@
       </div>
     </section>
     <section id="arena-view" aria-labelledby="arena-title" hidden>
-      <div class="view-heading"><div><p class="eyebrow">TREINAMENTO</p><h1 id="arena-title">SOC Arena</h1><p>Investigue evidências fictícias e justifique a sua classificação.</p></div><span class="environment-badge">CENÁRIOS SINTÉTICOS</span></div>
+      <div class="view-heading"><div><p class="eyebrow">TREINAMENTO</p><h1 id="arena-title">Treinamento</h1><p>Investigue as evidências do fluxo e justifique a classificação.</p></div><span class="environment-badge">FLUXOS DE DEMONSTRAÇÃO</span></div>
       <div class="analysis-grid">
         <section class="panel analysis-card">
           <label>Cenário<select id="arena-scenario"></select></label>
@@ -358,7 +358,7 @@
           <dl class="scope-list">
             <div><dt>Janelas independentes</dt><dd>As regras da clínica correlacionam login e atividade subsequente em até 120 s, na mesma conta, sessão e serviço. O cenário anterior de SSH mantém suas janelas independentes.</dd></div>
             <div><dt>MITRE ATT&amp;CK</dt><dd><a href="https://attack.mitre.org/techniques/T1078/" target="_blank" rel="noopener">T1078</a> como hipótese de abuso de conta, <a href="https://attack.mitre.org/techniques/T1213/" target="_blank" rel="noopener">T1213</a> para coleta em repositórios e <a href="https://attack.mitre.org/techniques/T1098/" target="_blank" rel="noopener">T1098</a> para manipulação de permissões. O pedido de exportação exige verificar o resultado antes de concluir vazamento.</dd></div>
-            <div><dt>IA e validação</dt><dd>O modo padrão usa uma saída simulada. O Ollama opcional recebe apenas contagens, indicadores de contexto e IDs de evidência. Conta, sessão, prontuário, IP e conteúdo clínico ficam fora da entrada. O SOAR valida esquema, IDs, técnicas e ações recomendadas. Falha ou JSON inválido impede a contenção.</dd></div>
+            <div><dt>IA e validação</dt><dd>No site, a triagem padrão usa uma resposta de referência identificada. O Ollama opcional recebe apenas contagens, indicadores de contexto e IDs de evidência. Conta, sessão, prontuário, IP e conteúdo clínico ficam fora da entrada. O SOAR valida esquema, IDs, técnicas e ações recomendadas. Falha ou JSON inválido impede a contenção.</dd></div>
             <div><dt id="llm-status">Modo padrão · fixture local</dt><dd>Modelo, versão, prompt, entrada, resultado e validação aparecem na trilha da rodada. A configuração do Ollama fica no README.</dd></div>
           </dl>
         </section>
@@ -382,7 +382,7 @@
       <p id="detail-message"></p><pre id="detail-json"></pre>
       <div class="actions"><button id="detail-select" type="button" class="compact primary" hidden>Marcar como evidência</button><button id="detail-pivot" type="button" class="compact" hidden>Filtrar por este IP</button></div>
     </dialog>
-    <footer><p>Clínica e dados fictícios. A contenção suspende uma sessão no serviço HTTP do laboratório.</p><div><a href="logs/clinica-demo.jsonl" download>Log das rodadas</a><a id="download-corpus" href="logs/clinica-investigacao-205k.jsonl.gz" download>Base de 205 mil eventos (.gz)</a></div></footer>
+    <footer><p>Dados da clínica são fictícios. A contenção demonstrada suspende uma sessão de teste no serviço HTTP.</p><div><a href="logs/clinica-demo.jsonl" download>Log das rodadas</a><a id="download-corpus" href="logs/clinica-investigacao-205k.jsonl.gz" download>Base de 205 mil eventos (.gz)</a></div></footer>
     <noscript>Ative o JavaScript no navegador para inicializar as VMs.</noscript>
   </main>
   </div>
