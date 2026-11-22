@@ -80,6 +80,39 @@ func TestClinicCorrelationRequiresSessionAndWindow(t *testing.T) {
 	}
 }
 
+func TestIncompleteClinicEvidenceNeverRequestsContainment(t *testing.T) {
+	cases := map[string]func([]signal){
+		"login telemetry absent": func(events []signal) {
+			copy(events, events[1:])
+		},
+		"actions in different sessions": func(events []signal) {
+			events[len(events)-1].Session = "OUTRA-SESSAO"
+		},
+		"activity after correlation window": func(events []signal) {
+			events[len(events)-1].At = events[0].At.Add(121 * time.Second)
+		},
+	}
+	for name, alter := range cases {
+		t.Run(name, func(t *testing.T) {
+			events := clinicReplay("stolen_account")
+			if name == "login telemetry absent" {
+				events = events[1:]
+			} else {
+				alter(events)
+			}
+			incident := summarize(events)
+			if incident.ChainComplete {
+				t.Fatal("incomplete evidence unexpectedly formed a complete chain")
+			}
+			job := &workflow{incident: incident}
+			(&appliance{role: "soar"}).applyTriagePolicy(job, "alta")
+			if job.phase != "monitoring" {
+				t.Fatalf("phase = %s; incomplete evidence must never request containment", job.phase)
+			}
+		})
+	}
+}
+
 func TestClinicSelectedEvidencePreservesObservedAuthorization(t *testing.T) {
 	events := clinicReplay("authorized_shift")
 	incident := summarize(events[1:])
