@@ -58,7 +58,7 @@ globalThis.SocValidation = (() => {
   function renderBenchmark(event, historical) {
     if (historical && actualBenchmark) return;
     if (!historical) actualBenchmark = true;
-    el('benchmark-state').textContent = historical ? 'Resultado da amostra de validação. Execute novamente para repetir a avaliação.' : 'Avaliação executada nesta sessão pela VM SIEM.';
+    el('benchmark-state').textContent = historical ? 'Resultado da amostra de validação. Execute novamente para repetir a avaliação.' : 'Avaliação executada nesta sessão pelo serviço SIEM.';
     el('benchmark-fp').textContent = `FP ${event.counts.fp} · ${percent.format(event.false_positive_rate)}`;
     el('benchmark-fn').textContent = `FN ${event.counts.fn} · ${percent.format(event.false_negative_rate)}`;
     el('benchmark-confusion').textContent = `VP ${event.counts.tp} · VN ${event.counts.tn}`;
