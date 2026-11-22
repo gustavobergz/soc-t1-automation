@@ -428,7 +428,7 @@ function onEvent(event) {
       break;
     case 'soar.notification':
       current.notified = true;
-      setStep('ticket', `${current.ticket} · ${event.channel} (simulado) · auditoria disponível em JSONL.`);
+      setStep('ticket', `${current.ticket} · ${event.channel} (canal de demonstração) · trilha disponível em JSONL.`);
       if (!current.released) checkContained();
       break;
     case 'endpoint.block_released':
