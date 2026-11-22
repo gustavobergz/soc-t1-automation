@@ -118,7 +118,7 @@ function* batches() {
 }
 
 async function main() {
-  const target = process.argv[2] || path.join(__dirname, '../logs/clinica-investigacao-205k.txt.gz');
+  const target = process.argv[2] || path.join(__dirname, '../logs/clinica-investigacao-205k.txt');
   if (target.endsWith('.gz')) await pipeline(batches(), createGzip({ level: 9 }), createWriteStream(target));
   else await pipeline(batches(), createWriteStream(target));
   console.log(`${total} linhas de log inteiramente fictícias da clínica em ${target}`);
