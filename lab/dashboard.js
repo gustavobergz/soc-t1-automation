@@ -176,7 +176,7 @@ globalThis.SocDashboard = (() => {
     node.classList.toggle('map-online', online);
     node.classList.toggle('map-blocked', blocked);
     el('kpi-vm-count').textContent = String(count);
-    el('lab-health').textContent = count === 4 ? 'SOC online' : count ? `${count} de 4 VMs online` : 'Laboratório em espera';
+    el('lab-health').textContent = count === 4 ? 'SOC online' : count ? `${count} de 4 serviços online` : 'Aguardando conexão';
     el('lab-health').parentElement.classList.toggle('healthy', count === 4);
   }
 
