@@ -10,20 +10,48 @@ function archiveWorker() {
   const normalizeSeverity = (value) => ({ high: 'alta', medium: 'media', low: 'baixa', média: 'media', informational: 'info' })[value] || value;
 
   function parseTextLog(text, line) {
-    const timestamp = text.match(/^(\S+)/)?.[1];
+    const timestamp = text.match(/^(\\S+)/)?.[1];
     const fields = Object.create(null);
-    const pattern = /([A-Za-z_][\w.-]*)=(?:"((?:\\.|[^"])*)"|(\S+))/g;
+    const pattern = /([A-Za-z_][\\w.-]*)=(?:"((?:\\\\.|[^"])*)"|(\\S+))/g;
     for (const match of text.matchAll(pattern)) {
-      fields[match[1]] = match[2] !== undefined ? match[2].replace(/\\(["\\])/g, '$1') : match[3];
+      fields[match[1]] = match[2] !== undefined ? match[2].replace(/\\\\(["\\\\])/g, '$1') : match[3];
     }
     if (!timestamp || !fields.host) throw new Error('Invalid text log');
+
+    const service = (fields.service || '').toLowerCase();
+    const action = (fields.action || fields.event || fields.event_type || '').toLowerCase();
+    const status = (fields.status || fields.outcome || '').toLowerCase();
+    const actionTypes = {
+      view_prontuario: 'ehr.record_read',
+      view_exames: 'ehr.record_read',
+      update_evolucao: 'ehr.record_update',
+      add_prescricao: 'ehr.record_create',
+      view_agenda: 'appointment.lookup',
+      c_find: 'imaging.study_query',
+      read: service === 'smb' ? 'file.read' : 'ehr.record_read',
+      export: status === 'denied' ? 'ehr.export_denied' : 'ehr.export_requested',
+    };
+    let eventType = fields.event || fields.event_type || actionTypes[action.replaceAll('-', '_')];
+    if (!eventType && ['auth', 'vpn', 'sshd'].includes(service)) {
+      eventType = ['failed', 'denied', 'failure'].includes(status) ? 'auth.failed' : 'auth.login';
+    }
+    if (!eventType) eventType = action ? `${service || fields.host.toLowerCase()}.${action}` : service || 'sem_tipo';
+
+    const alertName = (fields.alert || '').toLowerCase();
+    const highRiskAlerts = /data_exfiltration|mass_select|dns_tunneling|bulk_access|privilege_escalation/;
+    const mediumRiskAlerts = /port_scan|suspicious|brute_force/;
+    const severity = fields.severity || (highRiskAlerts.test(alertName) ? 'alta' :
+      mediumRiskAlerts.test(alertName) ? 'media' :
+      ['denied', 'failed', 'failure'].includes(status) ? 'baixa' : 'info');
+
     return {
       ...fields, timestamp, event_id: fields.event_id || `linha-${line}`,
-      event_type: fields.event || fields.event_type || fields.service || 'sem_tipo',
+      event_type: eventType,
       username: fields.user || fields.username || '',
-      source_ip: fields.src || fields.source_ip || '',
-      severity: fields.severity || (fields.status === 'denied' ? 'media' : 'info'),
-      message: fields.message || text, raw_text: text,
+      source_ip: fields.src || fields.source_ip || fields.srcip || '',
+      session_id: fields.session_id || fields.session || '',
+      patient_ref: fields.patient_ref || fields.patient_id || '',
+      severity, message: fields.message || text, raw_text: text,
     };
   }
 
