@@ -1,22 +1,15 @@
-# Roteiro rápido — SOC Clínica
-
-O laboratório demonstra como um SOC investiga acesso e operações suspeitas em uma clínica fictícia com apoio de triagem local e aprovação humana.
+# Roteiro rápido — Autonomous SOC Tier 1
 
 ## Preparação
 
-Abra a [demonstração](https://gustavobergz.github.io/soc-t1-automation/) ou o iniciador VirtualBox. Para usar o modelo real, execute primeiro **CONFIGURAR IA LOCAL.cmd** e depois **INICIAR COM IA LOCAL.cmd**. Prepare o modelo antes da apresentação.
+Abra o [aplicativo publicado](https://gustavobergz.github.io/soc-t1-automation/) ou abra `index.html` no navegador. Para uma demonstração estável, deixe **IA de triagem** em **Simulada (fixture)**. O modo Ollama exige um serviço local já configurado.
 
-## Oito minutos
+## Demonstração
 
-1. Apresente a clínica e informe que todos os dados são fictícios.
-2. Em **Operação ao vivo**, escolha **Conta médica roubada** e execute a rodada assistida.
-3. Abra o login, as 80 consultas resumidas e o pedido de exportação. Explique a diferença entre suspeita e confirmação.
-4. Em **Revisar incidente**, mostre a linha do tempo, as contraprovas e as lacunas. Abra o JSON para conferir o que chegou ao modelo.
-5. Simule o impacto e aprove a contenção. Mostre HTTP 403 para a sessão suspeita e HTTP 204 para a sessão legítima. Reverta e confira a liberação.
-6. Execute **Exportação indevida** e mostre a recusa da aplicação e a severidade média. A operação negada segue para investigação.
-7. Compare **Alteração suspeita de permissões** com **Plantão autorizado**. No controle benigno, a autorização deve direcionar o caso para acompanhamento.
-8. Abra o comprovante e explique as métricas observadas. Os resultados medem o experimento controlado.
+1. Carregue um arquivo de log em texto ou use um cenário de demonstração disponível na aplicação.
+2. Selecione um incidente e mostre a linha do tempo e as evidências que contribuíram para a prioridade.
+3. Abra a triagem assistida e explique que a IA sugere uma classificação e uma recomendação.
+4. Revise a sugestão e aprove ou rejeite a ação.
+5. Abra a auditoria para mostrar a decisão e os eventos registrados.
 
-Use **Análise de incidentes** para reproduzir rodadas registradas. No explorador, busque MED-017, REC-004 e ENF-009 para reunir registros individuais da base de 205 mil eventos.
-
-A [documentação completa](DOCUMENTACAO_SIMULACAO.md) descreve arquitetura, regras, logs, IA local, privacidade, resposta e limites da simulação.
+Os dados são fictícios. A contenção demonstrada é local ao aplicativo; ela não altera sistemas externos.
