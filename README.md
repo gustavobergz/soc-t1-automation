@@ -7,7 +7,7 @@ Laboratório acadêmico de SOC para investigar atividades suspeitas em uma clín
 ## Começar
 
 - **Análise de incidentes** abre rodadas registradas, replay, história, contraprovas, lacunas e comprovante em JSON.
-- **Investigar logs** carrega o histórico clínico de 205.000 eventos. Busque `MED-017`, `REC-004` ou `ENF-009`, selecione evidências individuais e salve um caso. A tela também abre diretamente uma amostra de oito eventos clínicos fictícios, disponível em [logs/clinica-exemplo.txt](logs/clinica-exemplo.txt).
+- **Investigar logs** lê registros clínicos em texto e oferece busca, filtros e seleção de evidências. Use **Importar logs** para abrir o arquivo local de 205.000 linhas (`clinica_ataque_logs.txt` ou outra base `.txt`/`.log`), ou abra a amostra de oito eventos fictícios em [logs/clinica-exemplo.txt](logs/clinica-exemplo.txt). O arquivo é interpretado no formato de linhas `chave="valor"`; não precisa ser convertido em JSON.
 - **Operação ao vivo** executa o cenário escolhido nas quatro VMs. Compare triagem manual, resposta simulada e Ollama local.
 - **SOC Arena** apresenta os quatro cenários com classificação e escolha da evidência decisiva.
 - **Método e auditoria** apresenta a política, as métricas e a avaliação controlada do detector.
