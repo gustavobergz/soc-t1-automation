@@ -10,11 +10,11 @@ function archiveWorker() {
   const normalizeSeverity = (value) => ({ high: 'alta', medium: 'media', low: 'baixa', média: 'media', informational: 'info' })[value] || value;
 
   function parseTextLog(text, line) {
-    const timestamp = text.match(/^(\\S+)/)?.[1];
+    const timestamp = text.match(/^(\S+)/)?.[1];
     const fields = Object.create(null);
-    const pattern = /([A-Za-z_][\\w.-]*)=(?:"((?:\\\\.|[^"])*)"|(\\S+))/g;
+    const pattern = /([A-Za-z_][\w.-]*)=(?:"((?:\\.|[^"])*)"|(\S+))/g;
     for (const match of text.matchAll(pattern)) {
-      fields[match[1]] = match[2] !== undefined ? match[2].replace(/\\\\(["\\\\])/g, '$1') : match[3];
+      fields[match[1]] = match[2] !== undefined ? match[2].replace(/\\(["\\])/g, '$1') : match[3];
     }
     if (!timestamp || !fields.host) throw new Error('Invalid text log');
 
@@ -35,7 +35,7 @@ function archiveWorker() {
     if (!eventType && ['auth', 'vpn', 'sshd'].includes(service)) {
       eventType = ['failed', 'denied', 'failure'].includes(status) ? 'auth.failed' : 'auth.login';
     }
-    if (!eventType) eventType = action ? `${service || fields.host.toLowerCase()}.${action}` : service || 'sem_tipo';
+    if (!eventType) eventType = action ? (service || fields.host.toLowerCase()) + '.' + action : service || 'sem_tipo';
 
     const alertName = (fields.alert || '').toLowerCase();
     const highRiskAlerts = /data_exfiltration|mass_select|dns_tunneling|bulk_access|privilege_escalation/;
@@ -45,7 +45,7 @@ function archiveWorker() {
       ['denied', 'failed', 'failure'].includes(status) ? 'baixa' : 'info');
 
     return {
-      ...fields, timestamp, event_id: fields.event_id || `linha-${line}`,
+      ...fields, timestamp, event_id: fields.event_id || 'linha-' + line,
       event_type: eventType,
       username: fields.user || fields.username || '',
       source_ip: fields.src || fields.source_ip || fields.srcip || '',
