@@ -2,3 +2,8 @@
 *.sh text eol=lf
 *.iso binary
 *.gz binary
+*.pptx binary
+*.png binary
+*.html text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf

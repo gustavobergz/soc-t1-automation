@@ -1,0 +1,12 @@
+{
+  "name": "soc-205mil-local",
+  "version": "2.1.0",
+  "private": true,
+  "description": "SOC demonstrativo com 205 mil eventos e decisão manual de resposta",
+  "scripts": {
+    "start": "node servidor-local.cjs",
+    "build": "node scripts/gerar-html.cjs",
+    "check": "node scripts/gerar-html.cjs --check",
+    "test": "node tests/resposta-manual.test.cjs && node --test tests/relatorio.test.cjs"
+  }
+}

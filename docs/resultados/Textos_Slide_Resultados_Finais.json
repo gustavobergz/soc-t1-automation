@@ -1,0 +1,222 @@
+[
+  {
+    "text": "Resultados:",
+    "x": 62.28,
+    "y": 80,
+    "w": 1310,
+    "h": 64,
+    "size": 48,
+    "bold": true,
+    "color": "#F4F7FB",
+    "font": "Arial"
+  },
+  {
+    "text": "Base analisada",
+    "x": 118.44,
+    "y": 239.56,
+    "w": 530,
+    "h": 32,
+    "size": 24,
+    "bold": true,
+    "color": "#2F7BFF",
+    "font": "Aptos"
+  },
+  {
+    "text": "Tempo de triagem",
+    "x": 766.44,
+    "y": 239.56,
+    "w": 548,
+    "h": 32,
+    "size": 24,
+    "bold": true,
+    "color": "#2F7BFF",
+    "font": "Aptos"
+  },
+  {
+    "text": "Resposta",
+    "x": 118.44,
+    "y": 417.76,
+    "w": 530,
+    "h": 32,
+    "size": 24,
+    "bold": true,
+    "color": "#2F7BFF",
+    "font": "Aptos"
+  },
+  {
+    "text": "Qualidade",
+    "x": 766.44,
+    "y": 417.76,
+    "w": 548,
+    "h": 32,
+    "size": 24,
+    "bold": true,
+    "color": "#2F7BFF",
+    "font": "Aptos"
+  },
+  {
+    "text": "STATUS DOS RESULTADOS",
+    "x": 123.84,
+    "y": 617.56,
+    "w": 530,
+    "h": 32,
+    "size": 24,
+    "bold": true,
+    "color": "#2F7BFF",
+    "font": "Aptos"
+  },
+  {
+    "text": "205.000 registros",
+    "x": 118.44,
+    "y": 273,
+    "w": 535,
+    "h": 25,
+    "size": 20,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "4 incidentes",
+    "x": 118.44,
+    "y": 298,
+    "w": 535,
+    "h": 25,
+    "size": 21,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "2 hosts",
+    "x": 118.44,
+    "y": 323,
+    "w": 535,
+    "h": 25,
+    "size": 21,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "Manual: 1 min a 1 min 30 s por caso",
+    "x": 766.44,
+    "y": 273,
+    "w": 548,
+    "h": 25,
+    "size": 20,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "Ollama: 20 a 30 s por caso",
+    "x": 766.44,
+    "y": 298,
+    "w": 548,
+    "h": 25,
+    "size": 21,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "",
+    "x": 766.44,
+    "y": 323,
+    "w": 548,
+    "h": 25,
+    "size": 21,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "4 casos com decisão humana",
+    "x": 118.44,
+    "y": 451,
+    "w": 535,
+    "h": 25,
+    "size": 20,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "2 bloqueios simulados e revertidos",
+    "x": 118.44,
+    "y": 476,
+    "w": 535,
+    "h": 25,
+    "size": 21,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "2 casos acompanhados",
+    "x": 118.44,
+    "y": 501,
+    "w": 535,
+    "h": 25,
+    "size": 20,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "4 respostas Ollama estruturalmente válidas",
+    "x": 766.44,
+    "y": 451,
+    "w": 548,
+    "h": 25,
+    "size": 20,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "IA x participante: 2/4 severidades iguais",
+    "x": 766.44,
+    "y": 476,
+    "w": 548,
+    "h": 25,
+    "size": 20,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "Justificativas e decisões na auditoria",
+    "x": 766.44,
+    "y": 501,
+    "w": 548,
+    "h": 25,
+    "size": 19.5,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "Tempos: faixas informadas para a demonstração. Demais dados: avaliação registrada.",
+    "x": 123.84,
+    "y": 664,
+    "w": 1168,
+    "h": 29,
+    "size": 20,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  },
+  {
+    "text": "Dados fictícios e resposta simulada. Ganho de produtividade não demonstrado.",
+    "x": 123.84,
+    "y": 697,
+    "w": 1168,
+    "h": 29,
+    "size": 20,
+    "bold": false,
+    "color": "#F4F7FB",
+    "font": "Aptos"
+  }
+]

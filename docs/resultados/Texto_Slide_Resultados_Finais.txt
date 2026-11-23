@@ -1,0 +1,20 @@
+Resultados:
+Base analisada
+Tempo de triagem
+Resposta
+Qualidade
+STATUS DOS RESULTADOS
+205.000 registros
+4 incidentes
+2 hosts
+Manual: 1 min a 1 min 30 s por caso
+Ollama: 20 a 30 s por caso
+
+4 casos com decisão humana
+2 bloqueios simulados e revertidos
+2 casos acompanhados
+4 respostas Ollama estruturalmente válidas
+IA x participante: 2/4 severidades iguais
+Justificativas e decisões na auditoria
+Tempos: faixas informadas para a demonstração. Demais dados: avaliação registrada.
+Dados fictícios e resposta simulada. Ganho de produtividade não demonstrado.

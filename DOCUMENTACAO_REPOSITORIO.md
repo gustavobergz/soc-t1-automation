@@ -1,3 +1,5 @@
+> Documento histórico de uma versão anterior. Para a versão 2.1.0, consulte o README e COMO_RODAR_E_EDITAR.txt. Interface, decisões e métricas descritas abaixo podem diferir da versão atual.
+
 # SOC Clínica
 
 Manual do repositório e das páginas

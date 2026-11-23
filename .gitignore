@@ -5,3 +5,14 @@
 /.env.*
 __pycache__/
 *.pyc
+
+# Registros locais e arquivos de trabalho
+/sessoes/
+/historico/
+/backups/
+/validacao/
+/output/
+/tmp/
+/relatorio-t2-*.txt
+/auditoria-soc-tier1*.json
+*.tmp

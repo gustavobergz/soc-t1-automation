@@ -1,0 +1,34 @@
+PROJETO COMPLETO — RELATÓRIO T2 E RESULTADOS
+
+Execute ABRIR_LOCAL.cmd ou, nesta pasta, node servidor-local.cjs. Requer Node.js 22 ou superior instalado e disponível no PATH. Abra http://127.0.0.1:8893/. Nenhum pacote npm adicional é necessário.
+
+Também é possível abrir index.html diretamente no navegador para demonstração. A base fictícia de 205.000 eventos está embutida. O servidor local oferece o conector do Ollama e salva as sessões JSON na pasta sessoes.
+
+RELATÓRIO PARA O T2
+1. Carregue os logs, confira os fatos e revise a severidade com justificativa.
+2. Registre sua conduta: aprovar atividade legítima, acompanhar investigação ou autorizar bloqueio simulado.
+3. Clique em Relatório T2. O resumo inclui os incidentes, severidades, justificativas humanas, sugestão da IA quando disponível, decisões e referências de evidência.
+4. Edite o texto e use Visualizar. Salvar rascunho mantém uma cópia neste navegador; os rascunhos também integram a sessão salva pelo servidor local.
+5. Baixar TXT gera o arquivo para anexar ao chamado ou enviar manualmente ao time. Anexe também os logs de origem e a auditoria JSON.
+6. Atualizar dados gera outra versão com os registros de origem. Restaurar versão anterior recupera a versão imediatamente anterior. A edição do relatório não modifica os incidentes.
+
+Os rascunhos deste navegador reaparecem para a mesma base, mesmo após recarregar a página. Se os registros mudarem, o aplicativo preserva o texto e avisa sobre a diferença. O relatório identifica a sessão de origem. Para abrir somente o relatório de uma sessão salva no servidor local, use /?provider=manual&report_session=UUID-DA-SESSAO.
+
+OLLAMA
+Mantenha o Ollama local em execução na porta 11434, com o modelo desejado instalado. Selecione Ollama local, confira modelo e conexão em Ajustes e clique em Analisar todos com IA. O modelo padrão é qwen2.5:1.5b. As 205.000 linhas são interpretadas pelas regras; a IA recebe resumos e evidências-chave dos incidentes. O tempo registrado inclui chamada e validação, e não somente inferência interna do modelo.
+
+EDIÇÃO E VERIFICAÇÃO
+motor.js: interpretação, correlação e resposta simulada.
+interface.js: interface, revisão humana, decisões, Ollama e editor de relatório.
+relatorio.js: geração do resumo TXT, utilizável também no Node.js.
+index.html: layout, estilos e versão autossuficiente com base e fontes embutidos.
+servidor-local.cjs: servidor restrito a 127.0.0.1, conector e sessões locais.
+
+Depois de editar os JS: node scripts/gerar-html.cjs.
+Conferir sincronização: node scripts/gerar-html.cjs --check.
+Testes: npm test. Também há npm start, npm run build e npm run check.
+
+SLIDE FINAL
+Slide_Resultados_Finais_Faixas_Informadas.pptx mantém o layout original. Manual: 60–90 s/caso; Ollama: 20–30 s/caso. São faixas informadas para a demonstração, não novas medições. Os números de base e resposta referem-se à avaliação já registrada. Não interpretar formato JSON válido ou concordância de severidade como acurácia comprovada.
+
+As ações são simuladas. A sugestão da IA e a classificação da regra não impedem a decisão manual. Não há envio automático do relatório para terceiros. Arquivos de sessões e histórico existentes permanecem locais e não são publicados no GitHub.
